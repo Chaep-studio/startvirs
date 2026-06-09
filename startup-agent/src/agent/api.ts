@@ -124,8 +124,8 @@ export async function* streamCompletion(
         const parsed = JSON.parse(data);
         const token = parsed.choices?.[0]?.delta?.content || '';
         if (token) yield token;
-      } catch {
-        // 跳过非 JSON 行
+      } catch (parseErr) {
+        console.warn('streamCompletion: 跳过无法解析的 SSE 数据:', data.slice(0, 200), parseErr instanceof Error ? parseErr.message : '');
       }
     }
   }
@@ -225,8 +225,8 @@ export async function streamWithTools(
             if (tc.function?.arguments) existing.function.arguments += tc.function.arguments;
           }
         }
-      } catch {
-        // 跳过非 JSON 行
+      } catch (parseErr) {
+        console.warn('streamWithTools: 跳过无法解析的 SSE 数据:', data.slice(0, 200), parseErr instanceof Error ? parseErr.message : '');
       }
     }
   }

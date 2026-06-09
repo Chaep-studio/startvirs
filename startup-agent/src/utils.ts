@@ -2,7 +2,8 @@ export function load<T>(key: string, fallback?: T): T | null {
   try {
     const raw = localStorage.getItem(key);
     return raw ? (JSON.parse(raw) as T) : (fallback ?? null);
-  } catch {
+  } catch (e) {
+    console.warn(`localStorage key "${key}" 数据解析失败，已回退到默认值:`, e instanceof Error ? e.message : String(e));
     return fallback ?? null;
   }
 }
