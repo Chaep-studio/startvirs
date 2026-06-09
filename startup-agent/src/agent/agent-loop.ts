@@ -247,7 +247,8 @@ export async function runAgentLoop(
       let args: Record<string, unknown>;
       try {
         args = JSON.parse(toolCall.function.arguments || '{}');
-      } catch {
+      } catch (parseErr) {
+        console.warn(`工具 ${toolName} 参数解析失败，使用空参数:`, toolCall.function.arguments?.slice(0, 200), parseErr instanceof Error ? parseErr.message : '');
         args = {};
       }
 

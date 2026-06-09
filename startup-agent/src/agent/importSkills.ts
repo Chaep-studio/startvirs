@@ -155,7 +155,9 @@ function buildSkillFromFiles(dirName: string, entries: FileEntry[]): Omit<Skill,
         const meta = JSON.parse(metaJson.text);
         name = meta.name || meta.slug || dirName;
         description = meta.description || description;
-      } catch { /* ignore */ }
+      } catch (e) {
+        console.warn(`_meta.json 解析失败 (${dirName}):`, e instanceof Error ? e.message : String(e));
+      }
     }
     if (!name) {
       // 从 agents/*.yaml 读取 display_name

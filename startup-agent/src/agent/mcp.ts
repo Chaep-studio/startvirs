@@ -168,11 +168,18 @@ async function sendMcpRequest(url: string, method: string, params: Record<string
 }
 
 async function sendMcpNotification(url: string, method: string, apiKey?: string): Promise<void> {
-  await fetch(MCP_PROXY, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url, body: { jsonrpc: '2.0', method }, apiKey }),
-  });
+  try {
+    const res = await fetch(MCP_PROXY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, body: { jsonrpc: '2.0', method }, apiKey }),
+    });
+    if (!res.ok) {
+      console.warn(`MCP notification '${method}' failed: HTTP ${res.status}`);
+    }
+  } catch (e) {
+    console.warn(`MCP notification '${method}' error:`, e instanceof Error ? e.message : String(e));
+  }
 }
 
 async function readSseResponse(res: Response, requestId: number): Promise<JsonRpcResponse> {
@@ -203,8 +210,8 @@ async function readSseResponse(res: Response, requestId: number): Promise<JsonRp
           if (parsed.id === requestId) {
             return parsed as JsonRpcResponse;
           }
-        } catch {
-          // Skip invalid JSON
+        } catch (parseErr) {
+          console.warn('readSseResponse: 跳过无法解析的 SSE 事件数据:', eventData.slice(0, 200), parseErr instanceof Error ? parseErr.message : '');
         }
         eventData = '';
       }
@@ -222,7 +229,8 @@ export function loadMcpServers(): McpServerConfig[] {
   try {
     const raw = localStorage.getItem(MCP_STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
-  } catch {
+  } catch (e) {
+    console.warn('MCP 服务器配置加载失败，已重置:', e instanceof Error ? e.message : String(e));
     return [];
   }
 }

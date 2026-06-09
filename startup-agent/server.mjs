@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 if (!process.env.DAYTONA_API_KEY) {
-  console.warn('⚠️  DAYTONA_API_KEY 未设置，工具调用将失败。请在 .env 中配置。');
+  console.error('❌ DAYTONA_API_KEY 未设置。所有工具调用将会失败。请在 .env 中配置后重启服务器。');
 }
 
 const daytona = new Daytona({ apiKey: process.env.DAYTONA_API_KEY });
@@ -83,7 +83,18 @@ app.post('/api/tools/write_file', async (req, res) => {
     if (!path || content === undefined) return res.status(400).json({ error: '缺少 path 或 content 参数' });
     const sb = await getSandbox(__sessionId);
     const dir = path.includes('/') ? path.split('/').slice(0, -1).join('/') : null;
-    if (dir) await sb.fs.createFolder(dir, '755').catch(() => {});
+    if (dir) {
+      try {
+        await sb.fs.createFolder(dir, '755');
+      } catch (mkdirErr) {
+        // Ignore "already exists" — propagate other errors
+        const msg = mkdirErr instanceof Error ? mkdirErr.message : String(mkdirErr);
+        if (!msg.includes('exist')) {
+          console.error(`createFolder(${dir}) 失败:`, msg);
+          return res.status(500).json({ error: `创建目录失败: ${msg}` });
+        }
+      }
+    }
     await sb.fs.uploadFile(Buffer.from(content, 'utf-8'), path);
     res.json({ ok: true, path });
   } catch (e) {
@@ -125,7 +136,12 @@ app.post('/api/tools/list_files', async (req, res) => {
       { DIR: dirPath },
       10
     );
-    const files = JSON.parse(result.result || '[]');
+    let files;
+    try {
+      files = JSON.parse(result.result || '[]');
+    } catch (parseErr) {
+      return res.status(500).json({ error: `目录列表解析失败: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`, raw: (result.result || '').slice(0, 500) });
+    }
     res.json({ files });
   } catch (e) {
     res.status(400).json({ error: e.message });
@@ -137,9 +153,13 @@ app.post('/api/sandbox/cleanup', async (req, res) => {
   const { sessionId } = req.body;
   if (sessionId && sandboxMap.has(sessionId)) {
     const { sandbox } = sandboxMap.get(sessionId);
-    await sandbox.delete().catch(() => {});
+    try {
+      await sandbox.delete();
+      console.log(`🔴 沙箱已销毁 [session=${sessionId}]`);
+    } catch (delErr) {
+      console.error(`沙箱删除失败 [session=${sessionId}]:`, delErr instanceof Error ? delErr.message : String(delErr));
+    }
     sandboxMap.delete(sessionId);
-    console.log(`🔴 沙箱已销毁 [session=${sessionId}]`);
   }
   res.json({ ok: true });
 });
@@ -187,8 +207,11 @@ app.post('/api/mcp/proxy', async (req, res) => {
             if (done) break;
             res.write(decoder.decode(value, { stream: true }));
           }
-        } catch {
-          // 客户端断开或流结束
+        } catch (streamErr) {
+          const msg = streamErr instanceof Error ? streamErr.message : String(streamErr);
+          if (!msg.includes('abort') && !msg.includes('cancel')) {
+            console.error('SSE 流转发错误:', msg);
+          }
         }
         res.end();
       };
@@ -207,5 +230,5 @@ app.post('/api/mcp/proxy', async (req, res) => {
 const PORT = 3456;
 app.listen(PORT, () => {
   console.log(`🔧 Agent 工具服务器运行在 http://localhost:${PORT}`);
-  console.log(`📂 工作空间: ${WSPACE}`);
+  console.log(`📂 工作空间: ${process.cwd()}`);
 });
