@@ -1,5 +1,6 @@
 import type { AgentConfig } from '../types';
-import { load, save, generateId } from '../utils';
+import { load, save } from '../utils';
+import { createStore } from './store';
 
 export const DEFAULT_AGENTS: AgentConfig[] = [
   {
@@ -59,42 +60,28 @@ export const DEFAULT_AGENTS: AgentConfig[] = [
   },
 ];
 
-const STORAGE_KEY = 'startup_agent_agents';
-const CURRENT_KEY = 'startup_agent_current_agent';
+const agentStore = createStore<AgentConfig>({
+  storageKey: 'startup_agent_agents',
+  defaults: DEFAULT_AGENTS,
+});
 
-export function loadAgents(): AgentConfig[] {
-  const saved = load<AgentConfig[]>(STORAGE_KEY);
-  if (saved && saved.length > 0) return saved;
-  save(STORAGE_KEY, DEFAULT_AGENTS);
-  return [...DEFAULT_AGENTS];
-}
-
-export function saveAgents(agents: AgentConfig[]) {
-  save(STORAGE_KEY, agents);
-}
-
-export function resetAgents(): AgentConfig[] {
-  save(STORAGE_KEY, DEFAULT_AGENTS);
-  return [...DEFAULT_AGENTS];
-}
+export const loadAgents = agentStore.load;
+export const saveAgents = agentStore.save;
+export const resetAgents = agentStore.reset;
 
 export function addAgent(agents: AgentConfig[], agent: Omit<AgentConfig, 'id'>): AgentConfig[] {
-  const next = [...agents, { ...agent, id: generateId() }];
-  saveAgents(next);
-  return next;
+  return agentStore.add(agents, agent);
 }
 
 export function updateAgent(agents: AgentConfig[], updated: AgentConfig): AgentConfig[] {
-  const next = agents.map((a) => (a.id === updated.id ? updated : a));
-  saveAgents(next);
-  return next;
+  return agentStore.update(agents, updated);
 }
 
 export function deleteAgent(agents: AgentConfig[], id: string): AgentConfig[] {
-  const next = agents.filter((a) => a.id !== id);
-  saveAgents(next);
-  return next;
+  return agentStore.remove(agents, id);
 }
+
+const CURRENT_KEY = 'startup_agent_current_agent';
 
 export function loadCurrentAgentId(): string {
   return load<string>(CURRENT_KEY) || DEFAULT_AGENTS[0].id;

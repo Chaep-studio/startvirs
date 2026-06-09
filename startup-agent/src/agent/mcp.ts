@@ -5,6 +5,8 @@
  */
 import type { McpServerConfig, McpTool } from '../types';
 import type { ChatCompletionTool } from './api';
+import { load, save } from '../utils';
+import { collectSseJsonRpcResponse } from './sse';
 
 // ============ MCP 协议类型 ============
 
@@ -158,8 +160,10 @@ async function sendMcpRequest(url: string, method: string, params: Record<string
   const contentType = res.headers.get('content-type') || '';
 
   // SSE response — read events until we get the result for our request ID
-  if (contentType.includes('text/event-stream')) {
-    return readSseResponse(res, req.id);
+  if (contentType.includes('text/event-stream') && res.body) {
+    const result = await collectSseJsonRpcResponse<JsonRpcResponse>(res.body, req.id);
+    if (result) return result;
+    return { jsonrpc: '2.0', id: req.id, error: { code: -1, message: 'SSE stream ended without response' } };
   }
 
   // Direct JSON response
@@ -175,58 +179,14 @@ async function sendMcpNotification(url: string, method: string, apiKey?: string)
   });
 }
 
-async function readSseResponse(res: Response, requestId: number): Promise<JsonRpcResponse> {
-  const reader = res.body?.getReader();
-  if (!reader) throw new Error('SSE response body not readable');
-
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let eventData = '';
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith('data: ')) {
-        eventData += trimmed.slice(6);
-      } else if (trimmed === '' && eventData) {
-        // End of event
-        try {
-          const parsed = JSON.parse(eventData);
-          // Check if this is the response to our request
-          if (parsed.id === requestId) {
-            return parsed as JsonRpcResponse;
-          }
-        } catch {
-          // Skip invalid JSON
-        }
-        eventData = '';
-      }
-    }
-  }
-
-  return { jsonrpc: '2.0', id: requestId, error: { code: -1, message: 'SSE stream ended without response' } };
-}
-
 // ============ MCP 配置持久化 ============
 
 const MCP_STORAGE_KEY = 'mcp_servers';
 
 export function loadMcpServers(): McpServerConfig[] {
-  try {
-    const raw = localStorage.getItem(MCP_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+  return load<McpServerConfig[]>(MCP_STORAGE_KEY) || [];
 }
 
 export function saveMcpServers(servers: McpServerConfig[]) {
-  localStorage.setItem(MCP_STORAGE_KEY, JSON.stringify(servers));
+  save(MCP_STORAGE_KEY, servers);
 }

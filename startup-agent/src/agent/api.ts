@@ -1,5 +1,6 @@
 import type { ApiConfig } from '../types';
 import { getAutoUrl } from '../utils';
+import { parseSseStream } from './sse';
 
 // ============ 类型定义 ============
 
@@ -35,16 +36,19 @@ export type AgentEvent =
   | { type: 'tool_call_end'; toolCall: ToolCall; result: unknown }
   | { type: 'done'; fullText: string };
 
-// ============ 非流式调用 ============
+// ============ 共享请求辅助 ============
 
-export async function callApi(
-  apiConfig: ApiConfig,
-  messagesForApi: { role: string; content: string }[],
-  maxTokens: number = 16384
-): Promise<string> {
+function validateApiConfig(apiConfig: ApiConfig): void {
   if (!apiConfig.enabled || !apiConfig.key || !apiConfig.url) {
     throw new Error('请先启用 API 配置并填写 URL 和 Key。点击右上角 ⚙️ 进行配置。');
   }
+}
+
+async function postChatCompletion(
+  apiConfig: ApiConfig,
+  body: Record<string, unknown>,
+): Promise<Response> {
+  validateApiConfig(apiConfig);
   const targetUrl = getAutoUrl(apiConfig.url);
   const res = await fetch(targetUrl, {
     method: 'POST',
@@ -52,17 +56,27 @@ export async function callApi(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiConfig.key}`,
     },
-    body: JSON.stringify({
-      model: apiConfig.model,
-      messages: messagesForApi,
-      temperature: 0.7,
-      max_tokens: maxTokens,
-    }),
+    body: JSON.stringify({ model: apiConfig.model, ...body }),
   });
   if (!res.ok) {
     const err = await res.text();
     throw new Error(`API 错误 ${res.status}: ${err}`);
   }
+  return res;
+}
+
+// ============ 非流式调用 ============
+
+export async function callApi(
+  apiConfig: ApiConfig,
+  messagesForApi: { role: string; content: string }[],
+  maxTokens: number = 16384
+): Promise<string> {
+  const res = await postChatCompletion(apiConfig, {
+    messages: messagesForApi,
+    temperature: 0.7,
+    max_tokens: maxTokens,
+  });
   const data = await res.json();
   return data.choices?.[0]?.message?.content || '（无回复）';
 }
@@ -74,59 +88,22 @@ export async function* streamCompletion(
   messagesForApi: { role: string; content: string }[],
   maxTokens: number = 16384
 ): AsyncGenerator<string> {
-  if (!apiConfig.enabled || !apiConfig.key || !apiConfig.url) {
-    throw new Error('请先启用 API 配置并填写 URL 和 Key。');
-  }
-
-  const targetUrl = getAutoUrl(apiConfig.url);
-  const res = await fetch(targetUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiConfig.key}`,
-    },
-    body: JSON.stringify({
-      model: apiConfig.model,
-      messages: messagesForApi,
-      temperature: 0.7,
-      max_tokens: maxTokens,
-      stream: true,
-    }),
+  const res = await postChatCompletion(apiConfig, {
+    messages: messagesForApi,
+    temperature: 0.7,
+    max_tokens: maxTokens,
+    stream: true,
   });
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`API 错误 ${res.status}: ${err}`);
-  }
+  if (!res.body) throw new Error('响应流不可读');
 
-  const reader = res.body?.getReader();
-  if (!reader) throw new Error('响应流不可读');
-
-  const decoder = new TextDecoder();
-  let buffer = '';
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed || !trimmed.startsWith('data: ')) continue;
-
-      const data = trimmed.slice(6);
-      if (data === '[DONE]') return;
-
-      try {
-        const parsed = JSON.parse(data);
-        const token = parsed.choices?.[0]?.delta?.content || '';
-        if (token) yield token;
-      } catch {
-        // 跳过非 JSON 行
-      }
+  for await (const data of parseSseStream(res.body)) {
+    try {
+      const parsed = JSON.parse(data);
+      const token = parsed.choices?.[0]?.delta?.content || '';
+      if (token) yield token;
+    } catch {
+      // 跳过非 JSON 行
     }
   }
 }
@@ -146,88 +123,51 @@ export async function streamWithTools(
   onToken?: (token: string) => void,
   temperature?: number
 ): Promise<{ content: string | null; tool_calls: ToolCall[] | null }> {
-  if (!apiConfig.enabled || !apiConfig.key || !apiConfig.url) {
-    throw new Error('请先启用 API 配置并填写 URL 和 Key。');
-  }
-
-  const targetUrl = getAutoUrl(apiConfig.url);
-  const res = await fetch(targetUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiConfig.key}`,
-    },
-    body: JSON.stringify({
-      model: apiConfig.model,
-      messages,
-      temperature: temperature ?? 0.7,
-      max_tokens: maxTokens,
-      stream: true,
-      tools,
-    }),
+  const res = await postChatCompletion(apiConfig, {
+    messages,
+    temperature: temperature ?? 0.7,
+    max_tokens: maxTokens,
+    stream: true,
+    tools,
   });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`API 错误 ${res.status}: ${err}`);
-  }
 
   // 流式解析：拼接 tool_calls 和 content
   let fullContent = '';
   const toolCallsMap = new Map<number, ToolCall>(); // index -> ToolCall
 
-  const reader = res.body?.getReader();
-  if (!reader) throw new Error('响应流不可读');
+  if (!res.body) throw new Error('响应流不可读');
 
-  const decoder = new TextDecoder();
-  let buffer = '';
+  for await (const data of parseSseStream(res.body)) {
+    try {
+      const parsed = JSON.parse(data);
+      const delta = parsed.choices?.[0]?.delta;
+      if (!delta) continue;
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed || !trimmed.startsWith('data: ')) continue;
-
-      const data = trimmed.slice(6);
-      if (data === '[DONE]') break;
-
-      try {
-        const parsed = JSON.parse(data);
-        const delta = parsed.choices?.[0]?.delta;
-        if (!delta) continue;
-
-        // 文本内容
-        if (delta.content) {
-          fullContent += delta.content;
-          onToken?.(delta.content);
-        }
-
-        // 工具调用（流式拼接）
-        if (delta.tool_calls) {
-          for (const tc of delta.tool_calls) {
-            const idx: number = tc.index ?? 0;
-            if (!toolCallsMap.has(idx)) {
-              toolCallsMap.set(idx, {
-                id: tc.id || '',
-                type: 'function',
-                function: { name: '', arguments: '' },
-              });
-            }
-            const existing = toolCallsMap.get(idx)!;
-            if (tc.id) existing.id = tc.id;
-            if (tc.function?.name) existing.function.name += tc.function.name;
-            if (tc.function?.arguments) existing.function.arguments += tc.function.arguments;
-          }
-        }
-      } catch {
-        // 跳过非 JSON 行
+      // 文本内容
+      if (delta.content) {
+        fullContent += delta.content;
+        onToken?.(delta.content);
       }
+
+      // 工具调用（流式拼接）
+      if (delta.tool_calls) {
+        for (const tc of delta.tool_calls) {
+          const idx: number = tc.index ?? 0;
+          if (!toolCallsMap.has(idx)) {
+            toolCallsMap.set(idx, {
+              id: tc.id || '',
+              type: 'function',
+              function: { name: '', arguments: '' },
+            });
+          }
+          const existing = toolCallsMap.get(idx)!;
+          if (tc.id) existing.id = tc.id;
+          if (tc.function?.name) existing.function.name += tc.function.name;
+          if (tc.function?.arguments) existing.function.arguments += tc.function.arguments;
+        }
+      }
+    } catch {
+      // 跳过非 JSON 行
     }
   }
 
