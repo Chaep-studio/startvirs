@@ -1,6 +1,6 @@
 import type { Skill, Message, ApiConfig } from '../types';
-import { load, save, generateId } from '../utils';
 import { callApi } from './api';
+import { createStore } from './store';
 
 export const DEFAULT_SKILLS: Skill[] = [
   {
@@ -57,40 +57,25 @@ export const DEFAULT_SKILLS: Skill[] = [
   },
 ];
 
-const STORAGE_KEY = 'startup_agent_skills';
+const skillStore = createStore<Skill>({
+  storageKey: 'startup_agent_skills',
+  defaults: DEFAULT_SKILLS,
+});
 
-export function loadSkills(): Skill[] {
-  const saved = load<Skill[]>(STORAGE_KEY);
-  if (saved && saved.length > 0) return saved;
-  save(STORAGE_KEY, DEFAULT_SKILLS);
-  return DEFAULT_SKILLS;
-}
-
-export function saveSkills(skills: Skill[]) {
-  save(STORAGE_KEY, skills);
-}
-
-export function resetSkills(): Skill[] {
-  save(STORAGE_KEY, DEFAULT_SKILLS);
-  return [...DEFAULT_SKILLS];
-}
+export const loadSkills = skillStore.load;
+export const saveSkills = skillStore.save;
+export const resetSkills = skillStore.reset;
 
 export function addSkill(skills: Skill[], skill: Omit<Skill, 'id'>): Skill[] {
-  const next = [...skills, { ...skill, id: generateId() }];
-  saveSkills(next);
-  return next;
+  return skillStore.add(skills, skill);
 }
 
 export function updateSkill(skills: Skill[], updated: Skill): Skill[] {
-  const next = skills.map((s) => (s.id === updated.id ? updated : s));
-  saveSkills(next);
-  return next;
+  return skillStore.update(skills, updated);
 }
 
 export function deleteSkill(skills: Skill[], id: string): Skill[] {
-  const next = skills.filter((s) => s.id !== id);
-  saveSkills(next);
-  return next;
+  return skillStore.remove(skills, id);
 }
 
 export function matchSkill(skills: Skill[], text: string): { skill: Skill; input: string } | null {

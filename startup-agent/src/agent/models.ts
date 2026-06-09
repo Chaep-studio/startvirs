@@ -1,5 +1,6 @@
 import type { ModelConfig } from '../types';
-import { load, save, generateId } from '../utils';
+import { load, save } from '../utils';
+import { createStore } from './store';
 
 export const DEFAULT_MODELS: ModelConfig[] = [
   {
@@ -55,49 +56,37 @@ export const DEFAULT_MODELS: ModelConfig[] = [
   },
 ];
 
-const STORAGE_KEY = 'startup_agent_models';
-const DEFAULT_MODEL_KEY = 'startup_agent_default_model';
+const modelStore = createStore<ModelConfig>({
+  storageKey: 'startup_agent_models',
+  defaults: DEFAULT_MODELS,
+});
 
-export function loadModels(): ModelConfig[] {
-  const saved = load<ModelConfig[]>(STORAGE_KEY);
-  if (saved && saved.length > 0) return saved;
-  save(STORAGE_KEY, DEFAULT_MODELS);
-  return [...DEFAULT_MODELS];
-}
-
-export function saveModels(models: ModelConfig[]) {
-  save(STORAGE_KEY, models);
-}
-
-export function resetModels(): ModelConfig[] {
-  save(STORAGE_KEY, DEFAULT_MODELS);
-  return [...DEFAULT_MODELS];
-}
+export const loadModels = modelStore.load;
+export const saveModels = modelStore.save;
+export const resetModels = modelStore.reset;
 
 export function addModel(models: ModelConfig[], model: Omit<ModelConfig, 'id'>): ModelConfig[] {
-  const next = [...models, { ...model, id: generateId() }];
-  saveModels(next);
-  return next;
+  return modelStore.add(models, model);
 }
 
 export function updateModel(models: ModelConfig[], updated: ModelConfig): ModelConfig[] {
-  const next = models.map((m) => (m.id === updated.id ? updated : m));
-  saveModels(next);
-  return next;
+  return modelStore.update(models, updated);
 }
 
 export function deleteModel(models: ModelConfig[], id: string): ModelConfig[] {
-  let next = models.filter((m) => m.id !== id);
+  let next = modelStore.remove(models, id);
   // 如果删除的是默认模型，自动选第一个启用的作为默认
   if (next.length > 0 && !next.some(m => m.isDefault)) {
     const firstEnabled = next.find(m => m.enabled);
     if (firstEnabled) {
       next = next.map(m => m.id === firstEnabled.id ? { ...m, isDefault: true } : { ...m, isDefault: false });
+      modelStore.save(next);
     }
   }
-  saveModels(next);
   return next;
 }
+
+const DEFAULT_MODEL_KEY = 'startup_agent_default_model';
 
 export function loadDefaultModelId(): string {
   return load<string>(DEFAULT_MODEL_KEY) || DEFAULT_MODELS[0].id;
