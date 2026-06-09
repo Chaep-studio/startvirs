@@ -32,7 +32,15 @@ export default function HtmlPreview({ html: rawHtml, title, onClose }: Props) {
         <div className="flex items-center gap-2">
           <a
             href="#"
-            onClick={(e) => { e.preventDefault(); window.open('', '_blank')?.document.write(html); }}
+            onClick={(e) => {
+              e.preventDefault();
+              // Open in a sandboxed blob URL instead of document.write to prevent XSS
+              const blob = new Blob([html], { type: 'text/html' });
+              const blobUrl = URL.createObjectURL(blob);
+              window.open(blobUrl, '_blank', 'noopener,noreferrer');
+              // Revoke after a delay to allow the tab to load
+              setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+            }}
             className="px-3 py-1.5 rounded-lg bg-stone-100 text-stone-600 text-xs font-semibold hover:bg-stone-200 transition flex items-center gap-1"
           >
             <iconify-icon icon="ph:arrow-square-out" style={{ fontSize: '12px' }}></iconify-icon>
@@ -55,7 +63,7 @@ export default function HtmlPreview({ html: rawHtml, title, onClose }: Props) {
             srcDoc={html}
             title={title || 'preview'}
             className="w-full h-full border-0"
-            sandbox="allow-scripts"
+            sandbox="allow-scripts allow-popups"
           />
         </div>
       </div>

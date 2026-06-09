@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { getServerAuthToken } from '../agent/tools';
 
 const TOOL_SERVER = 'http://localhost:3456';
 
@@ -23,9 +24,12 @@ export default function FileExplorer({ serverUrl = TOOL_SERVER }: Props) {
     setLoading(true);
     setError('');
     try {
+      const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+      const authToken = getServerAuthToken();
+      if (authToken) authHeaders['Authorization'] = `Bearer ${authToken}`;
       const res = await fetch(`${serverUrl}/api/tools/list_files`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({ path: dirPath }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -49,9 +53,12 @@ export default function FileExplorer({ serverUrl = TOOL_SERVER }: Props) {
     setPreviewLoading(true);
     setPreviewFile(null);
     try {
+      const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+      const authToken = getServerAuthToken();
+      if (authToken) authHeaders['Authorization'] = `Bearer ${authToken}`;
       const res = await fetch(`${serverUrl}/api/tools/read_file`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({ path: filePath }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

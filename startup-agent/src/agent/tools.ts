@@ -107,6 +107,17 @@ export const AGENT_TOOLS: ChatCompletionTool[] = [
 /** 工具服务器的默认地址 */
 export const TOOL_SERVER_URL = 'http://localhost:3456';
 
+/** Auth token for the tool server (set via SERVER_AUTH_TOKEN env or auto-generated at startup) */
+let _serverAuthToken = '';
+
+export function setServerAuthToken(token: string) {
+  _serverAuthToken = token;
+}
+
+export function getServerAuthToken(): string {
+  return _serverAuthToken;
+}
+
 /**
  * 调用工具服务器执行一个工具
  * sessionId 用于在 Daytona 云端沙箱中标识用户隔离环境
@@ -118,9 +129,13 @@ export async function executeTool(
   sessionId?: string,
 ): Promise<unknown> {
   const body = sessionId ? { ...args, __sessionId: sessionId } : args;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (_serverAuthToken) {
+    headers['Authorization'] = `Bearer ${_serverAuthToken}`;
+  }
   const res = await fetch(`${serverUrl}/api/tools/${toolName}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(body),
   });
   if (!res.ok) {

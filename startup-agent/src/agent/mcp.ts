@@ -5,6 +5,7 @@
  */
 import type { McpServerConfig, McpTool } from '../types';
 import type { ChatCompletionTool } from './api';
+import { getServerAuthToken } from './tools';
 
 // ============ MCP 协议类型 ============
 
@@ -145,9 +146,12 @@ async function sendMcpRequest(url: string, method: string, params: Record<string
   };
 
   // 通过后端代理转发，绕过浏览器 CORS 限制
+  const proxyHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+  const authToken = getServerAuthToken();
+  if (authToken) proxyHeaders['Authorization'] = `Bearer ${authToken}`;
   const res = await fetch(MCP_PROXY, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: proxyHeaders,
     body: JSON.stringify({ url, body: req, apiKey }),
   });
 
@@ -168,9 +172,12 @@ async function sendMcpRequest(url: string, method: string, params: Record<string
 }
 
 async function sendMcpNotification(url: string, method: string, apiKey?: string): Promise<void> {
+  const proxyHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+  const authToken = getServerAuthToken();
+  if (authToken) proxyHeaders['Authorization'] = `Bearer ${authToken}`;
   await fetch(MCP_PROXY, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: proxyHeaders,
     body: JSON.stringify({ url, body: { jsonrpc: '2.0', method }, apiKey }),
   });
 }
