@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>创作者的AI知识中枢</title>
+  <style>
+    /* ============================================================
+       基础 & 变量
+       ============================================================ */
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-card: rgba(18, 18, 30, 0.6);
+      --text-primary: #f0f0f5;
+      --text-secondary: #a0a0b8;
+      --text-muted: #6b6b80;
+      --accent-1: #6c5ce7;
+      --accent-2: #00d2d3;
+      --accent-3: #ff6b6b;
+      --accent-4: #feca57;
+      --accent-5: #a29bfe;
+      --gradient-1: linear-gradient(135deg, #6c5ce7, #a29bfe);
+      --gradient-2: linear-gradient(135deg, #00d2d3, #0abde3);
+      --gradient-3: linear-gradient(135deg, #ff6b6b, #ee5a24);
+      --gradient-4: linear-gradient(135deg, #feca57, #f9ca24);
+      --border-color: rgba(255, 255, 255, 0.06);
+      --border-hover: rgba(255, 255, 255, 0.12);
+      --radius-sm: 8px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-xl: 32px;
+      --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4);
+      --shadow-glow: 0 0 40px rgba(108, 92, 231, 0.15);
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    ::selection { background: rgba(108, 92, 231, 0.3); color: #fff; }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(108, 92, 231, 0.3) transparent;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ============================================================
+       Animated Background
+       ============================================================ */
+    #bg-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ============================================================
+       Navigation
+       ============================================================ */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px) saturate(1.8);
+      -webkit-backdrop-filter: blur(20px) saturate(1.8);
+      background: rgba(10, 10, 15, 0.75);
+      border-bottom: 1px solid var(--border-color);
+      transition: transform 0.3s ease;
+    }
+
+    nav.hidden { transform: translateY(-100%); }
+
+    .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.5px;
+    }
+
+    .nav-logo .logo-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--gradient-1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 4px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .nav-links a:hover,
+    .nav-links a.active {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .nav-cta {
+      background: var(--gradient-1);
+      color: #fff !important;
+      font-weight: 600;
+    }
+
+    .nav-cta:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    /* ============================================================
+       Hero Section
+       ============================================================ */
+    .hero {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(108, 92, 231, 0.12);
+      border: 1px solid rgba(108, 92, 231, 0.25);
+      color: var(--accent-5);
+      padding: 6px 16px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .hero-badge .pulse {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-1);
+      animation: pulse-dot 2s infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .hero h1 {
+      font-size: clamp(2.8rem, 8vw, 5rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -2px;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #fff 0%, #a29bfe 50%, #6c5ce7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin-bottom: 40px;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 48px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 48px;
+    }
+
+    .hero-stat {
+      text-align: center;
+    }
+
+    .hero-stat .num {
+      font-size: 2rem;
+      font-weight: 800;
+      background: var(--gradient-1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-stat .label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+
+    .scroll-indicator {
+      position: absolute;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      animation: float 2s ease-in-out infinite;
+    }
+
+    .scroll-indicator .arrow {
+      width: 20px;
+      height: 20px;
+      border-right: 2px solid var(--text-muted);
+      border-bottom: 2px solid var(--text-muted);
+      transform: rotate(45deg);
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(8px); }
+    }
+
+    /* ============================================================
+       Section Common Styles
+       ============================================================ */
+    section {
+      position: relative;
+      z-index: 1;
+      padding: 100px 24px;
+    }
+
+    .section-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 64px;
+    }
+
+    .section-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 100px;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 12px;
+    }
+
+    .section-subtitle {
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    /* ============================================================
+       Section 1: AI Trends (时间线风格卡片)
+       ============================================================ */
+    #trends {
+      background: linear-gradient(180deg, transparent 0%, rgba(108, 92, 231, 0.03) 50%, transparent 100%);
+    }
+
+    #trends .section-tag { background: rgba(108, 92, 231, 0.15); color: var(--accent-1); }
+
+    .trends-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 20px;
+    }
+
+    .trend-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 28px;
+      backdrop-filter: blur(12px);
+      transition: all 0.3s ease;
+      cursor: default;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .trend-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      right: 0;
+      height: 3px;
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+      transition: height 0.3s ease;
+    }
+
+    .trend-card:hover::before { height: 4px; }
+    .trend-card:nth-child(1)::before { background: var(--gradient-1); }
+    .trend-card:nth-child(2)::before { background: var(--gradient-2); }
+    .trend-card:nth-child(3)::before { background: var(--gradient-3); }
+
+    .trend-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-card);
+    }
+
+    .trend-card .icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 16px;
+    }
+
+    .trend-card:nth-child(1) .icon { background: rgba(108, 92, 231, 0.15); }
+    .trend-card:nth-child(2) .icon { background: rgba(0, 210, 211, 0.15); }
+    .trend-card:nth-child(3) .icon { background: rgba(255, 107, 107, 0.15); }
+
+    .trend-card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .trend-card p {
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .trend-card .stat-row {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .trend-card .stat-item {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .trend-card .stat-item strong {
+      display: block;
+      font-size: 16px;
+      color: var(--text-primary);
+    }
+
+    /* ============================================================
+       Section 2: 用户心智 (展示卡片)
+       ============================================================ */
+    #mindshare {
+      background: linear-gradient(180deg, transparent 0%, rgba(0, 210, 211, 0.03) 50%, transparent 100%);
+    }
+
+    #mindshare .section-tag { background: rgba(0, 210, 211, 0.15); color: var(--accent-2); }
+
+    .mindshare-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .mind-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 28px;
+      backdrop-filter: blur(12px);
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .mind-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-card);
+    }
+
+    .mind-card .card-num {
+      font-size: 40px;
+      font-weight: 900;
+      opacity: 0.08;
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    .mind-card h4 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--accent-2);
+    }
+
+    .mind-card p {
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .mind-card .example {
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: rgba(0, 210, 211, 0.06);
+      border-radius: var(--radius-sm);
+      font-size: 12.5px;
+      color: var(--text-muted);
+      border-left: 3px solid var(--accent-2);
+    }
+
+    .mind-card .example strong { color: var(--text-primary); }
+
+    /* ============================================================
+       Section 3: 自媒体干货 (内容战略)
+       ============================================================ */
+    #content {
+      background: linear-gradient(180deg, transparent 0%, rgba(254, 202, 87, 0.03) 50%, transparent 100%);
+    }
+
+    #content .section-tag { background: rgba(254, 202, 87, 0.15); color: var(--accent-4); }
+
+    .content-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 24px;
+    }
+
+    .content-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .content-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-card);
+    }
+
+    .content-card .card-head {
+      padding: 24px 28px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .content-card .card-head .emoji-big {
+      font-size: 32px;
+      flex-shrink: 0;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(254, 202, 87, 0.1);
+      border-radius: 12px;
+    }
+
+    .content-card .card-head h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .content-card .card-head .sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .content-card .card-body {
+      padding: 16px 28px 24px;
+    }
+
+    .content-card .card-body p {
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .content-card .card-body ul {
+      list-style: none;
+      margin-top: 12px;
+    }
+
+    .content-card .card-body ul li {
+      font-size: 13px;
+      color: var(--text-secondary);
+      padding: 6px 0;
+      padding-left: 20px;
+      position: relative;
+    }
+
+    .content-card .card-body ul li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--accent-4);
+    }
+
+    /* ============================================================
+       Section 4: Claude Mythos (重磅)
+       ============================================================ */
+    #mythos {
+      background: linear-gradient(180deg, transparent 0%, rgba(255, 107, 107, 0.03) 50%, transparent 100%);
+    }
+
+    #mythos .section-tag { background: rgba(255, 107, 107, 0.15); color: var(--accent-3); }
+
+    .mythos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .mythos-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      backdrop-filter: blur(12px);
+      transition: all 0.3s ease;
+    }
+
+    .mythos-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-card);
+    }
+
+    .mythos-card .metric {
+      font-size: 2.5rem;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 4px;
+      background: var(--gradient-3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .mythos-card .metric-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .mythos-card p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .mythos-card .highlight-box {
+      margin-top: 12px;
+      padding: 12px 14px;
+      background: rgba(255, 107, 107, 0.06);
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--accent-3);
+      font-size: 12.5px;
+      color: var(--text-secondary);
+    }
+
+    /* 引用块 */
+    .quote-block {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 40px 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      backdrop-filter: blur(12px);
+    }
+
+    .quote-block blockquote {
+      font-size: 1.3rem;
+      font-weight: 700;
+      line-height: 1.5;
+      color: var(--text-primary);
+      max-width: 700px;
+      margin: 0 auto 12px;
+    }
+
+    .quote-block .author {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* ============================================================
+       Section 5: 行动指南
+       ============================================================ */
+    #action {
+      background: linear-gradient(180deg, transparent 0%, rgba(162, 155, 254, 0.03) 50%, transparent 100%);
+    }
+
+    #action .section-tag { background: rgba(162, 155, 254, 0.15); color: var(--accent-5); }
+
+    .action-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .action-step {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 28px;
+      text-align: center;
+      backdrop-filter: blur(12px);
+      transition: all 0.3s ease;
+    }
+
+    .action-step:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: var(--shadow-card);
+    }
+
+    .action-step .step-num {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--gradient-1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .action-step h4 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .action-step p {
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    /* ============================================================
+       Footer
+       ============================================================ */
+    footer {
+      position: relative;
+      z-index: 1;
+      padding: 48px 24px;
+      text-align: center;
+      border-top: 1px solid var(--border-color);
+    }
+
+    footer p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    footer .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    footer .footer-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13px;
+      transition: color 0.2s;
+    }
+
+    footer .footer-links a:hover { color: var(--text-primary); }
+
+    /* ============================================================
+       Responsive
+       ============================================================ */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .hero-stats { gap: 24px; }
+      .trends-grid,
+      .mindshare-grid,
+      .content-cards,
+      .mythos-grid,
+      .action-steps {
+        grid-template-columns: 1fr;
+      }
+      .quote-block { padding: 24px 16px; }
+      .quote-block blockquote { font-size: 1.1rem; }
+      section { padding: 60px 16px; }
+    }
+
+    /* ============================================================
+       Animations
+       ============================================================ */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .animate-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .animate-in:nth-child(2) { transition-delay: 0.1s; }
+    .animate-in:nth-child(3) { transition-delay: 0.2s; }
+    .animate-in:nth-child(4) { transition-delay: 0.3s; }
+    .animate-in:nth-child(5) { transition-delay: 0.4s; }
+  </style>
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- ============================================================
+       Animated Background Canvas (Three.js 粒子)
+       ============================================================ -->
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- ============================================================
+       Navigation
+       ============================================================ -->
+  <nav id="navbar">
+    <div class="nav-inner">
+      <div class="nav-logo">
+        <div class="logo-icon">✦</div>
+        Knowledge Hub
+      </div>
+      <ul class="nav-links">
+        <li><a href="#trends" class="active">AI趋势</a></li>
+        <li><a href="#mindshare">用户心智</a></li>
+        <li><a href="#content">内容战略</a></li>
+        <li><a href="#mythos">Mythos</a></li>
+        <li><a href="#action" class="nav-cta">行动指南</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       Hero
+       ============================================================ -->
+  <section class="hero">
+    <div class="hero-badge">
+      <span class="pulse"></span>
+      2026 · 知识资产聚合
+    </div>
+    <h1>创作者的AI<br>知识中枢</h1>
+    <p>
+      从 AI 最新趋势到用户心智洞察，从爆款内容方法论到 AGI 前沿突破<br>
+      把你需要知道的，放在一个地方。
+    </p>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="num">4</div>
+        <div class="label">核心主题</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num">∞</div>
+        <div class="label">知识密度</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num">2026</div>
+        <div class="label">前沿时效</div>
+      </div>
+    </div>
+    <div class="scroll-indicator">
+      <span>向下探索</span>
+      <div class="arrow"></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Section 1: AI Trends (from 2026AI趋势口播稿)
+       ============================================================ -->
+  <section id="trends">
+    <div class="section-container">
+      <div class="section-header animate-in">
+        <span class="section-tag">趋势洞察</span>
+        <h2 class="section-title">2026 · AI 的三大巨变</h2>
+        <p class="section-subtitle">竞争逻辑彻底变了——从拼参数到拼落地，AI 正在渗透每一个行业。</p>
+      </div>
+      <div class="trends-grid">
+        <div class="trend-card animate-in">
+          <div class="icon">🤖</div>
+          <h3>智能体爆发</h3>
+          <p>2026 年超过 40% 的企业应用将嵌入 AI 智能体。原来需要 3 个人干的活，现在 1 个人 + AI 就能搞定——而且干得更好。</p>
+          <div class="stat-row">
+            <div class="stat-item"><strong>40%+</strong>企业应用嵌入智能体</div>
+            <div class="stat-item"><strong>3:1</strong>人效提升</div>
+          </div>
+        </div>
+        <div class="trend-card animate-in">
+          <div class="icon">🎨</div>
+          <h3>多模态落地</h3>
+          <p>AI 现在能「能说、能看、能画、能做」。拍视频不再需要剪辑师，AI 直接生成配图、配音、加特效，5 分钟出成品。</p>
+          <div class="stat-row">
+            <div class="stat-item"><strong>5min</strong>一条成品视频</div>
+            <div class="stat-item"><strong>80%</strong>效率提升</div>
+          </div>
+        </div>
+        <div class="trend-card animate-in">
+          <div class="icon">🏠</div>
+          <h3>具身智能走向现实</h3>
+          <p>智能眼镜、家庭机器人销量暴涨 70–80%。AI 正在从手机里走出来，变成你家里真正的「管家」。</p>
+          <div class="stat-row">
+            <div class="stat-item"><strong>70-80%</strong>销量增长</div>
+            <div class="stat-item"><strong>1.8万亿$</strong>全球AI市场规模</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Section 2: 用户心智 (from 什么是用户心智.md)
+       ============================================================ -->
+  <section id="mindshare">
+    <div class="section-container">
+      <div class="section-header animate-in">
+        <span class="section-tag">认知武器</span>
+        <h2 class="section-title">用户心智的四大法则</h2>
+        <p class="section-subtitle">用户心智不是「你要讲什么」，而是「用户愿意接受什么」。</p>
+      </div>
+      <div class="mindshare-grid">
+        <div class="mind-card animate-in">
+          <div class="card-num">01</div>
+          <h4>🧠 容量极有限</h4>
+          <p>像一块湿水泥——平均每个品类，用户只能记住 2–7 个品牌。心智份额 ≈ 市场份额。</p>
+          <div class="example"><strong>现实：</strong>如果你没在前 3 名，用户的心智中就没有你。</div>
+        </div>
+        <div class="mind-card animate-in">
+          <div class="card-num">02</div>
+          <h4>🗂️ 厌恶混乱</h4>
+          <p>用户自动给事物贴标签、分类、排序。无法快速归类 → 直接被忽略。</p>
+          <div class="example"><strong>案例：</strong>「中国的 Airbnb」比「P2P 短租平台」快 10 倍被理解。</div>
+        </div>
+        <div class="mind-card animate-in">
+          <div class="card-num">03</div>
+          <h4>🛡️ 拒绝改变</h4>
+          <p>已有认知一旦形成，极难推翻。不要试图「教育用户」，要借用用户已有的认知。</p>
+          <div class="example"><strong>案例：</strong>七喜打不过可乐 → 定位「非可乐」，借用已有分类。</div>
+        </div>
+        <div class="mind-card animate-in">
+          <div class="card-num">04</div>
+          <h4>❤️ 情感先于理性</h4>
+          <p>用户在 50 毫秒内形成第一印象。理性决策只是为情感判断找理由。</p>
+          <div class="example"><strong>铁律：</strong>「感觉对」比「逻辑对」更重要。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Section 3: 内容战略 (from 自媒体干货.txt)
+       ============================================================ -->
+  <section id="content">
+    <div class="section-container">
+      <div class="section-header animate-in">
+        <span class="section-tag">爆款方法论</span>
+        <h2 class="section-title">内容战略的三大引擎</h2>
+        <p class="section-subtitle">月涨 20 万粉丝的核心方法——信息密度 + 故事性 + 推力结构。</p>
+      </div>
+      <div class="content-cards">
+        <div class="content-card animate-in">
+          <div class="card-head">
+            <div class="emoji-big">📖</div>
+            <div>
+              <h3>故事性</h3>
+              <div class="sub">让观点通过故事「活」起来</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <p>没有火不了的观点，只有火不了的故事。用罗伯特故事结构（激励事件 → 进展纠葛 → 危机 → 高潮 → 结局）包装观点，完播率翻倍。</p>
+            <ul>
+              <li>「摆摊舅舅靠食材优势月入 3 万」→ 千万播放</li>
+              <li>「清华博士收废品年入百万」→ 刷爆全网</li>
+              <li>反常识观点 × 真实故事 = 爆款公式</li>
+            </ul>
+          </div>
+        </div>
+        <div class="content-card animate-in">
+          <div class="card-head">
+            <div class="emoji-big">📦</div>
+            <div>
+              <h3>信息密度设计</h3>
+              <div class="sub">用「量大管饱」留住观众</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <p>观众划走的唯一原因：无聊。一条 8 分钟视频塞进 9 个小故事 + 8 条金句 + 6 个悬念句 + 7 个反常识观点 → 刷一条顶十条。</p>
+            <ul>
+              <li>怼脸口播 + 高密度信息 = 无限流量</li>
+              <li>抛弃花哨剪辑，靠内容本身取胜</li>
+              <li>信息密度 = 完播率的终极密码</li>
+            </ul>
+          </div>
+        </div>
+        <div class="content-card animate-in">
+          <div class="card-head">
+            <div class="emoji-big">⬇️</div>
+            <div>
+              <h3>推力结构</h3>
+              <div class="sub">让内容自带「看完下一段」的引力</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <p>「一定要看到最后」已失效。改为暗示式推力：通过内容层级递进，让观众感知「越往后内容越深、干货越多」。</p>
+            <ul>
+              <li>分层递进：0→10万 → 10万→100万 → 100万→1000万</li>
+              <li>每一段都是下一段的钩子</li>
+              <li>让观众「一不小心就看完了」</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Section 4: Claude Mythos (from Claude_Mythos_口播稿.txt)
+       ============================================================ -->
+  <section id="mythos">
+    <div class="section-container">
+      <div class="section-header animate-in">
+        <span class="section-tag">⚠️ 核爆级突破</span>
+        <h2 class="section-title">Claude Mythos：AI 界的奇点时刻</h2>
+        <p class="section-subtitle">当 AI 开始嘲笑年薪百万的安全研究员的简历——我们终于意识到，外星文明已经着陆。</p>
+      </div>
+      <div class="mythos-grid">
+        <div class="mythos-card animate-in">
+          <div class="metric">9.90</div>
+          <div class="metric-label">ExploitBench 得分</div>
+          <p>CMU 测试：41 个真实浏览器漏洞。Mythos 拿了 9.90 分，GPT-5.5 只有 5.51 分。断层碾压。</p>
+          <div class="highlight-box">全自主模式下仍拿 9.55 分，几乎不需要人类介入。</div>
+        </div>
+        <div class="mythos-card animate-in">
+          <div class="metric">5 天</div>
+          <div class="metric-label">攻破苹果 M5 内存保护</div>
+          <p>苹果吹了五年的「全球最难攻破桌面系统」——五天被打穿。人类研究员追了一年的漏洞，AI 五天搞定。</p>
+          <div class="highlight-box">不是降维打击，是直接删号重练。</div>
+        </div>
+        <div class="mythos-card animate-in">
+          <div class="metric">22岁</div>
+          <div class="metric-label">开源复现 · OpenMythos</div>
+          <p>天才开发者 Kye Gomez 扒出核心架构，全开源。同一套权重跑 16 次循环深度 Transformer，突然就「悟」了。</p>
+          <div class="highlight-box">闭源实验室的护城河——可能真的没了。</div>
+        </div>
+        <div class="mythos-card animate-in">
+          <div class="metric">73%</div>
+          <div class="metric-label">企业网络攻破成功率</div>
+          <p>英国 AISI 网络靶场：人类专家 20 小时完成的 32 步攻击，Mythos 全自动搞定。高盛已拉响红色警报。</p>
+          <div class="highlight-box">全球第一个通过 AISI 端到端测试的 AI。</div>
+        </div>
+        <div class="mythos-card animate-in">
+          <div class="metric">∞</div>
+          <div class="metric-label">评测天花板被击穿</div>
+          <p>METR 发现他们测不准 Mythos 了。人类需 16 小时完成的长线任务，Mythos 轻松达到 50% 成功率。</p>
+          <div class="highlight-box">就像用 1 米尺子量摩天大楼——只知道它爆表了。</div>
+        </div>
+        <div class="mythos-card animate-in">
+          <div class="metric">$36,428</div>
+          <div class="metric-label">122 轮测试成本</div>
+          <p>GPT-5.5 只要 $3,075。12 倍价差是 OpenAI 最后的喘息空间——但如果性能断层真的这么大，钱还重要吗？</p>
+          <div class="highlight-box">2027 AGI 奇点？可能保守了。</div>
+        </div>
+        <div class="quote-block animate-in">
+          <blockquote>“我们总以为 AI 是工具，是助手。但 Mythos 告诉我们，它可能是竞争对手。<br>不是替代流水线工人，是替代那些觉得自己「不可替代」的知识精英。”</blockquote>
+          <div class="author">—— 我们正在经历的，不是预言，是倒计时。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Section 5: 行动指南
+       ============================================================ -->
+  <section id="action">
+    <div class="section-container">
+      <div class="section-header animate-in">
+        <span class="section-tag">立即行动</span>
+        <h2 class="section-title">普通人怎么抓住这波红利？</h2>
+        <p class="section-subtitle">AI 不会淘汰人，但会用 AI 的人一定会淘汰不会用 AI 的人。</p>
+      </div>
+      <div class="action-steps">
+        <div class="action-step animate-in">
+          <div class="step-num">1</div>
+          <h4>立刻用起来</h4>
+          <p>注册 DeepSeek、千问、文心一言——任何一个都行。重点是先用起来，感受一下现在的 AI 到底有多强。</p>
+        </div>
+        <div class="action-step animate-in">
+          <div class="step-num">2</div>
+          <h4>找到你的痛点</h4>
+          <p>找到一个日常工作或生活中的痛点，尝试用 AI 解决它。写文案、做表格、整理资料——先干起来再说。</p>
+        </div>
+        <div class="action-step animate-in">
+          <div class="step-num">3</div>
+          <h4>拥抱 AI 智能体</h4>
+          <p>你只需要下一个指令，AI 就能帮你把所有事情干完。2026 年，AI 已从「可选工具」变成「必备能力」。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Footer
+       ============================================================ -->
+  <footer>
+    <div class="footer-links">
+      <a href="#trends">AI 趋势</a>
+      <a href="#mindshare">用户心智</a>
+      <a href="#content">内容战略</a>
+      <a href="#mythos">Mythos</a>
+    </div>
+    <p>© 2026 Knowledge Hub · 用前沿认知武装创作者</p>
+  </footer>
+
+  <!-- ============================================================
+       Three.js 粒子背景
+       ============================================================ -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+
+    // ---------- 粒子背景 ----------
+    const canvas = document.getElementById('bg-canvas');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    // 粒子系统
+    const count = 2000;
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+    const sizes = new Float32Array(count);
+
+    const palette = [
+      new THREE.Color(0x6c5ce7),
+      new THREE.Color(0x00d2d3),
+      new THREE.Color(0xa29bfe),
+      new THREE.Color(0xfeca57),
+    ];
+
+    for (let i = 0; i < count; i++) {
+      const i3 = i * 3;
+      positions[i3] = (Math.random() - 0.5) * 80;
+      positions[i3 + 1] = (Math.random() - 0.5) * 80;
+      positions[i3 + 2] = (Math.random() - 0.5) * 80;
+
+      const col = palette[Math.floor(Math.random() * palette.length)];
+      colors[i3] = col.r;
+      colors[i3 + 1] = col.g;
+      colors[i3 + 2] = col.b;
+
+      sizes[i] = Math.random() * 2 + 0.5;
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+    const mat = new THREE.PointsMaterial({
+      size: 0.12,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.6,
+      blending: THREE.AdditiveBlending,
+      sizeAttenuation: true,
+      depthWrite: false,
+    });
+
+    const particles = new THREE.Points(geo, mat);
+    scene.add(particles);
+
+    camera.position.z = 30;
+
+    let mouseX = 0, mouseY = 0;
+    document.addEventListener('mousemove', (e) => {
+      mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+      mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+    });
+
+    function animateParticles() {
+      requestAnimationFrame(animateParticles);
+
+      particles.rotation.y += 0.00015;
+      particles.rotation.x += 0.00005;
+
+      // 鼠标跟随
+      particles.rotation.x += (mouseY * 0.02 - particles.rotation.x) * 0.01;
+      particles.rotation.y += (mouseX * 0.02 - particles.rotation.y) * 0.01;
+
+      renderer.render(scene, camera);
+    }
+
+    animateParticles();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // ---------- 滚动动画 IntersectionObserver ----------
+    const animElements = document.querySelectorAll('.animate-in');
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
+
+    animElements.forEach(el => observer.observe(el));
+
+    // ---------- 导航高亮 ----------
+    const navLinks = document.querySelectorAll('.nav-links a');
+    const sections = document.querySelectorAll('section[id]');
+
+    function updateNav() {
+      let current = '';
+      sections.forEach(section => {
+        const top = section.offsetTop - 100;
+        if (window.scrollY >= top) {
+          current = section.getAttribute('id');
+        }
+      });
+      navLinks.forEach(link => {
+        link.classList.toggle('active', link.getAttribute('href') === `#${current}`);
+      });
+    }
+
+    window.addEventListener('scroll', updateNav);
+
+    // ---------- 导航栏隐藏/显示 ----------
+    let lastScroll = 0;
+    const navbar = document.getElementById('navbar');
+
+    window.addEventListener('scroll', () => {
+      const currentScroll = window.scrollY;
+      if (currentScroll > lastScroll && currentScroll > 80) {
+        navbar.classList.add('hidden');
+      } else {
+        navbar.classList.remove('hidden');
+      }
+      lastScroll = currentScroll;
+    });
+  </script>
+</body>
+</html>

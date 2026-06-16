@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser Roguelike</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #f39c12; margin-bottom: 10px; }
+        
+        /* 状态栏 */
+        .status-bar {
+            background: #16213e;
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .status-bar span { color: #00d9ff; }
+        
+        /* 地图 */
+        .map-container {
+            display: grid;
+            grid-template-columns: repeat(5, 60px);
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        .room {
+            width: 60px;
+            height: 60px;
+            background: #2c2c54;
+            border: 2px solid #474787;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 24px;
+            transition: all 0.2s;
+        }
+        .room:hover:not(.locked) { background: #474787; }
+        .room.current { border-color: #f39c12; box-shadow: 0 0 10px #f39c12; }
+        .room.locked { opacity: 0.3; cursor: not-allowed; }
+        .room.boss { background: #c0392b; }
+        .room.shop { background: #27ae60; }
+        .room.elite { background: #8e44ad; }
+        .room.treasure { background: #f39c12; }
+        
+        /* 玩家区域 */
+        .player-info {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            width: 100%;
+            max-width: 400px;
+        }
+        .player-info h3 { color: #f39c12; margin-bottom: 10px; }
+        .stat-row { display: flex; justify-content: space-between; margin: 5px 0; }
+        
+        /* 装备栏 */
+        .equipment {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        .equip-slot {
+            background: #2c2c54;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        
+        /* 按钮区域 */
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+        button:hover { background: #2980b9; }
+        button:disabled { background: #7f8c8d; cursor: not-allowed; }
+        button.attack { background: #e74c3c; }
+        button.attack:hover { background: #c0392b; }
+        button.defend { background: #3498db; }
+        button.item { background: #27ae60; }
+        button.next { background: #9b59b6; }
+        
+        /* 消息区域 */
+        .message {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            width: 100%;
+            max-width: 400px;
+            min-height: 80px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .message p { margin: 5px 0; }
+        .message .damage { color: #e74c3c; }
+        .message .heal { color: #27ae60; }
+        .message .gold { color: #f39c12; }
+        .message .rare { color: #9b59b6; }
+        .message .epic { color: #e67e22; }
+        .message .legendary { color: #f1c40f; }
+        
+        /* 弹窗 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: #16213e;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal h2 { color: #f39c12; margin-bottom: 15px; }
+        .modal-list { margin: 10px 0; }
+        .modal-list button { margin: 5px; }
+        
+        /* 背包 */
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin: 10px 0;
+        }
+        .inventory-item {
+            background: #2c2c54;
+            padding: 8px;
+            border-radius: 5px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .inventory-item:hover { background: #474787; }
+        
+        /* 商店 */
+        .shop-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background: #2c2c54;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        
+        /* 游戏结束 */
+        .game-over { text-align: center; }
+        .game-over h2 { color: #e74c3c; font-size: 36px; }
+        .victory h2 { color: #f39c12; }
+        
+        /* 开始菜单 */
+        #startMenu { text-align: center; }
+        #startMenu button { margin: 10px; }
+        
+        /* 战斗界面 */
+        .combat-info {
+            text-align: center;
+            margin: 15px 0;
+        }
+        .enemy-hp-bar {
+            width: 200px;
+            height: 20px;
+            background: #2c2c54;
+            border-radius: 10px;
+            margin: 10px auto;
+            overflow: hidden;
+        }
+        .enemy-hp-fill {
+            height: 100%;
+            background: #e74c3c;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏰 Browser Roguelike</h1>
+    
+    <!-- 开始菜单 -->
+    <div id="startMenu">
+        <p>欢迎来到地牢世界！</p>
+        <button onclick="startGame(false)">新游戏</button>
+        <button onclick="startGame(true)">继续游戏</button>
+    </div>
+    
+    <!-- 游戏主界面 -->
+    <div id="gameUI" style="display:none;">
+        <div class="status-bar">
+            <div>层数: <span id="floorNum">1</span></div>
+            <div>生命: <span id="hp">100</span>/<span id="maxHp">100</span></div>
+            <div>金币: <span id="gold">0</span></div>
+            <div>等级: <span id="level">1</span></div>
+            <div>经验: <span id="exp">0</span>/<span id="expNeed">100</span></div>
+        </div>
+        
+        <div class="map-container" id="map"></div>
+        
+        <div class="player-info">
+            <h3>玩家属性</h3>
+            <div class="stat-row"><span>攻击力:</span> <span id="atk">10</span></div>
+            <div class="stat-row"><span>防御力:</span> <span id="def">5</span></div>
+            <div class="stat-row"><span>暴击率:</span> <span id="crit">10%</span></div>
+            <div class="equipment">
+                <div class="equip-slot">武器: <span id="weapon">无</span></div>
+                <div class="equip-slot">防具: <span id="armor">无</span></div>
+                <div class="equip-slot">饰品: <span id="accessory">无</span></div>
+            </div>
+        </div>
+        
+        <div class="actions" id="actions">
+            <button class="attack" onclick="combatAction('attack')">攻击</button>
+            <button class="defend" onclick="combatAction('defend')">防御</button>
+            <button class="item" onclick="showInventory()">道具</button>
+            <button onclick="showEquipment()">装备</button>
+            <button class="next" id="nextFloorBtn" onclick="nextFloor()">下一层</button>
+        </div>
+        
+        <div class="message" id="message"></div>
+    </div>
+    
+    <!-- 背包弹窗 -->
+    <div class="modal" id="inventoryModal">
+        <div class="modal-content">
+            <h2>背包</h2>
+            <div class="inventory-grid" id="inventoryGrid"></div>
+            <button onclick="closeModal('inventoryModal')">关闭</button>
+        </div>
+    </div>
+    
+    <!-- 装备弹窗 -->
+    <div class="modal" id="equipmentModal">
+        <div class="modal-content">
+            <h2>装备管理</h2>
+            <div class="modal-list" id="equipmentList"></div>
+            <button onclick="closeModal('equipmentModal')">关闭</button>
+        </div>
+    </div>
+    
+    <!-- 商店弹窗 -->
+    <div class="modal" id="shopModal">
+        <div class="modal-content">
+            <h2>商店</h2>
+            <div id="shopItems"></div>
+            <p>金币: <span id="shopGold">0</span></p>
+            <button onclick="closeModal('shopModal')">离开</button>
+        </div>
+    </div>
+    
+    <!-- 游戏结束弹窗 -->
+    <div class="modal" id="gameOverModal">
+        <div class="modal-content game-over">
+            <h2 id="gameOverTitle">游戏结束</h2>
+            <p id="gameOverMsg"></p>
+            <button onclick="location.reload()">重新开始</button>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态
+        let game = {
+            floor: 1,
+            player: {
+                hp: 100,
+                maxHp: 100,
+                atk: 10,
+                def: 5,
+                gold: 0,
+                level: 1,
+                exp: 0,
+                expNeed: 100,
+                crit: 10,
+                inventory: [],
+                equipment: { weapon: null, armor: null, accessory: null }
+            },
+            map: [],
+            currentRoom: { x: 2, y: 2 },
+            combat: null,
+            messageLog: []
+        };
+        
+        const ROOM_TYPES = ['normal', 'elite', 'shop', 'treasure', 'boss'];
+        const ENEMIES = {
+            normal: [
+                { name: '哥布林', hp: 30, atk: 8, def: 2, exp: 20, gold: 10 },
+                { name: '骷髅', hp: 25, atk: 10, def: 3, exp: 25, gold: 15 },
+                { name: '史莱姆', hp: 35, atk: 6, def: 1, exp: 15, gold: 8 }
+            ],
+            elite: [
+                { name: '哥布林勇士', hp: 60, atk: 15, def: 5, exp: 50, gold: 30 },
+                { name: '骷髅法师', hp: 45, atk: 20, def: 3, exp: 60, gold: 40 },
+                { name: '暗影刺客', hp: 40, atk: 25, def: 2, exp: 70, gold: 50 }
+            ],
+            boss: [
+                { name: '地牢守卫', hp: 150, atk: 25, def: 10, exp: 200, gold: 100 },
+                { name: '炎魔', hp: 200, atk: 30, def: 8, exp: 300, gold: 150 },
+                { name: '死亡骑士', hp: 250, atk: 35, def: 15, exp: 500, gold: 200 }
+            ]
+        };
+        
+        const ITEMS = {
+            consumable: [
+                { name: '红药水', type: 'consumable', effect: 'heal', value: 30, desc: '恢复30生命' },
+                { name: '大红药水', type: 'consumable', effect: 'heal', value: 60, desc: '恢复60生命' },
+                { name: '蓝药水', type: 'consumable', effect: 'energy', value: 1, desc: '恢复1点能量' }
+            ],
+            weapon: [
+                { name: '铁剑', type: 'weapon', atk: 5, quality: 1 },
+                { name: '钢剑', type: 'weapon', atk: 10, quality: 2 },
+                { name: '魔法剑', type: 'weapon', atk: 18, quality: 3 },
+                { name: '传奇之剑', type: 'weapon', atk: 30, quality: 4 }
+            ],
+            armor: [
+                { name: '皮甲', type: 'armor', def: 3, quality: 1 },
+                { name: '锁甲', type: 'armor', def: 6, quality: 2 },
+                { name: '板甲', type: 'armor', def: 12, quality: 3 },
+                { name: '神圣铠甲', type: 'armor', def: 20, quality: 4 }
+            ],
+            accessory: [
+                { name: '幸运戒指', type: 'accessory', crit: 5, quality: 1 },
+                { name: '力量戒指', type: 'accessory', atk: 5, quality: 2 },
+                { name: '守护护符', type: 'accessory', def: 5, quality: 2 },
+                { name: '暴击护符', type: 'accessory', crit: 15, quality: 3 }
+            ]
+        };
+        
+        const QUALITY_COLORS = ['', 'white', '#2ecc71', '#3498db', '#9b59b6', '#f1c40f'];
+        
+        // 初始化游戏
+        function startGame(continueGame) {
+            if (continueGame) {
+                const saved = localStorage.getItem('roguelike_save');
+                if (saved) {
+                    game = JSON.parse(saved);
+                    document.getElementById('startMenu').style.display = 'none';
+                    document.getElementById('gameUI').style.display = 'block';
+                    updateUI();
+                    renderMap();
+                    return;
+                }
+            }
+            generateMap();
+            document.getElementById('startMenu').style.display = 'none';
+            document.getElementById('gameUI').style.display = 'block';
+            updateUI();
+            renderMap();
+            addMessage('欢迎来到地牢！探索房间，击败敌人，收集装备，击败Boss通关！');
+        }
+        
+        // 生成地图
+        function generateMap() {
+            game.map = [];
+            game.currentRoom = { x: 2, y: 2 };
+            
+            for (let y = 0; y < 5; y++) {
+                const row = [];
+                for (let x = 0; x < 5; x++) {
+                    let type = 'normal';
+                    if (x === 2 && y === 2) {
+                        type = 'start';
+                    } else if (y === 0 && x === 4) {
+                        type = 'boss';
+                    } else if (Math.random() < 0.15) {
+                        type = 'shop';
+                    } else if (Math.random() < 0.15) {
+                        type = 'treasure';
+                    } else if (Math.random() < 0.1) {
+                        type = 'elite';
+                    }
+                    row.push({ type, visited: false, cleared: false });
+                }
+                game.map.push(row);
+            }
+            game.map[2][2].visited = true;
+        }
+        
+        // 渲染地图
+        function renderMap() {
+            const mapEl = document.getElementById('map');
+            mapEl.innerHTML = '';
+            
+            for (let y = 0; y < 5; y++) {
+                for (let x = 0; x < 5; x++) {
+                    const room = game.map[y][x];
+                    const div = document.createElement('div');
+                    div.className = 'room';
+                    
+                    const isAdjacent = Math.abs(x - game.currentRoom.x) + Math.abs(y - game.currentRoom.y) === 1;
+                    const isCurrent = x === game.currentRoom.x && y === game.currentRoom.y;
+                    
+                    if (isCurrent) {
+                        div.classList.add('current');
+                        div.textContent = '🧙';
+                    } else if (!isAdjacent || room.type === 'boss') {
+                        div.classList.add('locked');
+                    }
+                    
+                    if (room.type === 'boss') div.classList.add('boss');
+                    if (room.type === 'shop') div.classList.add('shop');
+                    if (room.type === 'elite') div.classList.add('elite');
+                    if (room.type === 'treasure') div.classList.add('treasure');
+                    
+                    const icons = { boss: '👹', shop: '💰', elite: '👿', treasure: '📦', start: '🏠', normal: '🚪' };
+                    div.textContent = icons[room.type] || '🚪';
+                    
+                    div.onclick = () => moveTo(x, y);
+                    mapEl.appendChild(div);
+                }
+            }
+        }
+        
+        // 移动
+        function moveTo(x, y) {
+            const room = game.map[y][x];
+            const isAdjacent = Math.abs(x - game.currentRoom.x) + Math.abs(y - game.currentRoom.y) === 1;
+            
+            if (!isAdjacent) {
+                addMessage('太远了，无法到达！');
+                return;
+            }
+            
+            game.currentRoom = { x, y };
+            room.visited = true;
+            renderMap();
+            
+            if (!room.cleared) {
+                enterRoom(room);
+            } else {
+                addMessage('这个房间已经清理过了。');
+            }
+        }
+        
+        // 进入房间
+        function enterRoom(room) {
+            switch(room.type) {
+                case 'normal':
+                    startCombat('normal');
+                    break;
+                case 'elite':
+                    startCombat('elite');
+                    break;
+                case 'boss':
+                    startCombat('boss');
+                    break;
+                case 'shop':
+                    openShop();
+                    break;
+                case 'treasure':
+                    openTreasure();
+                    break;
+                case 'start':
+                    addMessage('这是起始房间。');
+                    break;
+            }
+        }
+        
+        // 战斗系统
+        function startCombat(enemyType) {
+            const template = ENEMIES[enemyType][Math.floor(Math.random() * ENEMIES[enemyType].length)];
+            game.combat = {
+                enemy: { ...template, maxHp: template.hp },
+                defending: false,
+                round: 0
+            };
+            
+            showCombatUI(true);
+            addMessage(`遭遇 ${game.combat.enemy.name}！生命: ${game.combat.enemy.hp}`);
+        }
+        
+        function showCombatUI(show) {
+            const actions = document.getElementById('actions');
+            actions.style.display = show ? 'flex' : 'none';
+            
+            if (show && game.combat) {
+                const combatInfo = document.createElement('div');
+                combatInfo.className = 'combat-info';
+                combatInfo.id = 'combatInfo';
+                combatInfo.innerHTML = `
+                    <p>敌人: <span id="enemyName">${game.combat.enemy.name}</span></p>
+                    <div class="enemy-hp-bar">
+                        <div class="enemy-hp-fill" id="enemyHpBar" style="width:100%"></div>
+                    </div>
+                    <p><span id="enemyHp">${game.combat.enemy.hp}</span> / <span id="enemyMaxHp">${game.combat.enemy.maxHp}</span></p>
+                `;
+                
+                const msgEl = document.getElementById('message');
+                msgEl.parentNode.insertBefore(combatInfo, msgEl);
+            } else {
+                const combatInfo = document.getElementById('combatInfo');
+                if (combatInfo) combatInfo.remove();
+            }
+        }
+        
+        function combatAction(action) {
+            if (!game.combat) return;
+            
+            const player = game.player;
+            const enemy = game.combat.enemy;
+            
+            // 玩家回合
+            if (action === 'attack') {
+                let damage = player.atk - enemy.def;
+                let isCrit = Math.random() * 100 < player.crit;
+                if (isCrit) {
+                    damage = Math.floor(damage * 2);
+                    addMessage(`暴击！`, 'damage');
+                }
+                damage = Math.max(1, damage);
+                enemy.hp -= damage;
+                addMessage(`对 ${enemy.name} 造成 <span class="damage">${damage}</span> 点伤害！`);
+            } else if (action === 'defend') {
+                game.combat.defending = true;
+                addMessage('你进入防御姿态！');
+            }
+            
+            // 更新敌人血条
+            updateEnemyHP();
+            
+            // 检查敌人死亡
+            if (enemy.hp <= 0) {
+                endCombat(true);
+                return;
+            }
+            
+            // 敌人回合
+            let enemyDamage = enemy.atk - player.def;
+            if (game.combat.defending) {
+                enemyDamage = Math.floor(enemyDamage / 2);
+            }
+            enemyDamage = Math.max(1, enemyDamage);
+            player.hp -= enemyDamage;
+            game.combat.defending = false;
+            
+            addMessage(`${enemy.name} 对你造成 <span class="damage">${enemyDamage}</span> 点伤害！`);
+            
+            // 检查玩家死亡
+            if (player.hp <= 0) {
+                player.hp = 0;
+                updateUI();
+                gameOver(false);
+                return;
+            }
+            
+            updateUI();
+            saveGame();
+        }
+        
+        function updateEnemyHP() {
+            const enemy = game.combat.enemy;
+            const hpBar = document.getElementById('enemyHpBar');
+            const hpText = document.getElementById('enemyHp');
+            if (hpBar && hpText) {
+                const percent = Math.max(0, (enemy.hp / enemy.maxHp) * 100);
+                hpBar.style.width = percent + '%';
+                hpText.textContent = Math.max(0, enemy.hp);
+            }
+        }
+        
+        function endCombat(victory) {
+            const room = game.map[game.currentRoom.y][game.currentRoom.x];
+            room.cleared = true;
+            
+            if (victory) {
+                const enemy = game.combat.enemy;
+                addMessage(`击败 ${enemy.name}！获得 ${enemy.exp} 经验和 ${enemy.gold} 金币！`);
+                game.player.exp += enemy.exp;
+                game.player.gold += enemy.gold;
+                
+                // 升级
+                while (game.player.exp >= game.player.expNeed) {
+                    game.player.exp -= game.player.expNeed;
+                    game.player.level++;
+                    game.player.expNeed = Math.floor(game.player.expNeed * 1.5);
+                    game.player.maxHp += 20;
+                    game.player.hp = game.player.maxHp;
+                    game.player.atk += 3;
+                    game.player.def += 2;
+                    addMessage(`升级到 ${game.player.level} 级！全属性提升！`, 'heal');
+                }
+                
+                // 掉落装备
+                if (Math.random() < 0.3) {
+                    const dropType = ['weapon', 'armor', 'accessory'][Math.floor(Math.random() * 3)];
+                    const items = ITEMS[dropType];
+                    const item = items[Math.floor(Math.random() * items.length)];
+                    game.player.inventory.push({ ...item });
+                    const color = QUALITY_COLORS[item.quality] || 'white';
+                    addMessage(`获得装备: <span style="color:${color}">${item.name}</span>`, 'rare');
+                }
+            }
+            
+            game.combat = null;
+            showCombatUI(false);
+            updateUI();
+            saveGame();
+            
+            // 检查是否通关
+            if (room.type === 'boss' && victory) {
+                if (game.floor >= 3) {
+                    gameOver(true);
+                } else {
+                    addMessage('击败了Boss！可以前往下一层了。');
+                    document.getElementById('nextFloorBtn').style.display = 'inline-block';
+                }
+            }
+        }
+        
+        // 商店
+        function openShop() {
+            const shopItems = document.getElementById('shopItems');
+            shopItems.innerHTML = '';
+            
+            const items = [
+                ...ITEMS.consumable.slice(0, 2),
+                ITEMS.weapon[Math.floor(Math.random() * 2) + game.floor - 1],
+                ITEMS.armor[Math.floor(Math.random() * 2) + game.floor - 1]
+            ];
+            
+            items.forEach((item, i) => {
+                const price = (item.quality || 1) * 50;
+                const div = document.createElement('div');
+                div.className = 'shop-item';
+                div.innerHTML = `
+                    <span>${item.name} - ${item.desc || ('+' + (item.atk || item.def || item.crit))}</span>
+                    <button onclick="buyItem(${i})">${price}金</button>
+                `;
+                shopItems.appendChild(div);
+            });
+            
+            document.getElementById('shopGold').textContent = game.player.gold;
+            document.getElementById('shopModal').classList.add('active');
+        }
+        
+        function buyItem(index) {
+            const prices = [30, 50, 50, 50];
+            const price = prices[index] || 50;
+            
+            if (game.player.gold < price) {
+                addMessage('金币不足！');
+                return;
+            }
+            
+            game.player.gold -= price;
+            const items = [
+                ITEMS.consumable[0],
+                ITEMS.consumable[1],
+                ITEMS.weapon[game.floor - 1] || ITEMS.weapon[0],
+                ITEMS.armor[game.floor - 1] || ITEMS.armor[0]
+            ];
+            game.player.inventory.push({ ...items[index] });
+            addMessage(`购买 ${items[index].name}！`);
+            document.getElementById('shopGold').textContent = game.player.gold;
+            saveGame();
+        }
+        
+        // 宝箱
+        function openTreasure() {
+            const room = game.map[game.currentRoom.y][game.currentRoom.x];
+            room.cleared = true;
+            
+            const gold = Math.floor(Math.random() * 50) + 30;
+            game.player.gold += gold;
+            addMessage(`打开宝箱，获得 <span class="gold">${gold}</span> 金币！`);
+            
+            if (Math.random() < 0.5) {
+                const type = ['weapon', 'armor', 'accessory'][Math.floor(Math.random() * 3)];
+                const items = ITEMS[type];
+                const item = items[Math.floor(Math.random() * Math.min(2, items.length))];
+                game.player.inventory.push({ ...item });
+                const color = QUALITY_COLORS[item.quality] || 'white';
+                addMessage(`获得装备: <span style="color:${color}">${item.name}</span>`);
+            }
+            
+            updateUI();
+            saveGame();
+        }
+        
+        // 背包
+        function showInventory() {
+            const grid = document.getElementById('inventoryGrid');
+            grid.innerHTML = '';
+            
+            if (game.player.inventory.length === 0) {
+                grid.innerHTML = '<p>背包为空</p>';
+            } else {
+                game.player.inventory.forEach((item, i) => {
+                    const div = document.createElement('div');
+                    div.className = 'inventory-item';
+                    const color = QUALITY_COLORS[item.quality] || 'white';
+                    div.innerHTML = `<span style="color:${color}">${item.name}</span><br><small>${item.desc || (item.atk ? '+' + item.atk + '攻' : item.def ? '+' + item.def + '防' : '+' + item.crit + '暴')}</small>`;
+                    div.onclick = () => useItem(i);
+                    grid.appendChild(div);
+                });
+            }
+            
+            document.getElementById('inventoryModal').classList.add('active');
+        }
+        
+        function useItem(index) {
+            const item = game.player.inventory[index];
+            
+            if (item.type === 'consumable') {
+                if (item.effect === 'heal') {
+                    const heal = Math.min(item.value, game.player.maxHp - game.player.hp);
+                    game.player.hp += heal;
+                    addMessage(`使用 ${item.name}，恢复 <span class="heal">${heal}</span> 生命！`);
+                }
+                game.player.inventory.splice(index, 1);
+            } else {
+                equipItem(index);
+            }
+            
+            updateUI();
+            saveGame();
+            showInventory();
+        }
+        
+        // 装备
+        function showEquipment() {
+            const list = document.getElementById('equipmentList');
+            list.innerHTML = '';
+            
+            const equipTypes = ['weapon', 'armor', 'accessory'];
+            const equipNames = ['武器', '防具', '饰品'];
+            
+            equipTypes.forEach((type, i) => {
+                const current = game.player.equipment[type];
+                const div = document.createElement('div');
+                div.innerHTML = `<p><strong>${equipNames[i]}:</strong> ${current ? current.name : '无'}</p>`;
+                
+                // 显示可装备的物品
+                game.player.inventory.forEach((item, j) => {
+                    if (item.type === type) {
+                        const color = QUALITY_COLORS[item.quality] || 'white';
+                        const btn = document.createElement('button');
+                        btn.textContent = `装备 ${item.name}`;
+                        btn.style.color = color;
+                        btn.onclick = () => { equipItem(j); showEquipment(); };
+                        div.appendChild(btn);
+                    }
+                });
+                
+                list.appendChild(div);
+            });
+            
+            document.getElementById('equipmentModal').classList.add('active');
+        }
+        
+        function equipItem(index) {
+            const item = game.player.inventory[index];
+            const slot = item.type;
+            
+            // 卸下当前装备
+            if (game.player.equipment[slot]) {
+                game.player.inventory.push(game.player.equipment[slot]);
+            }
+            
+            // 装备新装备
+            game.player.equipment[slot] = item;
+            game.player.inventory.splice(index, 1);
+            
+            // 更新属性
+            recalcStats();
+            addMessage(`装备 ${item.name}！`);
+        }
+        
+        function recalcStats() {
+            const p = game.player;
+            let atk = 10, def = 5, crit = 10;
+            
+            if (p.equipment.weapon) atk += p.equipment.weapon.atk;
+            if (p.equipment.armor) def += p.equipment.armor.def;
+            if (p.equipment.accessory) {
+                if (p.equipment.accessory.atk) atk += p.equipment.accessory.atk;
+                if (p.equipment.accessory.def) def += p.equipment.accessory.def;
+                if (p.equipment.accessory.crit) crit += p.equipment.accessory.crit;
+            }
+            
+            p.atk = atk;
+            p.def = def;
+            p.crit = crit;
+        }
+        
+        // 下一层
+        function nextFloor() {
+            game.floor++;
+            game.player.hp = game.player.maxHp;
+            generateMap();
+            renderMap();
+            updateUI();
+            addMessage(`进入地牢第 ${game.floor} 层！`);
+            document.getElementById('nextFloorBtn').style.display = 'none';
+            saveGame();
+        }
+        
+        // UI更新
+        function updateUI() {
+            const p = game.player;
+            document.getElementById('floorNum').textContent = game.floor;
+            document.getElementById('hp').textContent = p.hp;
+            document.getElementById('maxHp').textContent = p.maxHp;
+            document.getElementById('gold').textContent = p.gold;
+            document.getElementById('level').textContent = p.level;
+            document.getElementById('exp').textContent = p.exp;
+            document.getElementById('expNeed').textContent = p.expNeed;
+            document.getElementById('atk').textContent = p.atk;
+            document.getElementById('def').textContent = p.def;
+            document.getElementById('crit').textContent = p.crit + '%';
+            
+            const eq = p.equipment;
+            document.getElementById('weapon').textContent = eq.weapon ? eq.weapon.name : '无';
+            document.getElementById('armor').textContent = eq.armor ? eq.armor.name : '无';
+            document.getElementById('accessory').textContent = eq.accessory ? eq.accessory.name : '无';
+        }
+        
+        function addMessage(text, className = '') {
+            const msgEl = document.getElementById('message');
+            const p = document.createElement('p');
+            p.innerHTML = text;
+            if (className) p.className = className;
+            msgEl.insertBefore(p, msgEl.firstChild);
+            
+            // 限制消息数量
+            while (msgEl.children.length > 20) {
+                msgEl.removeChild(msgEl.lastChild);
+            }
+        }
+        
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+        
+        function saveGame() {
+            localStorage.setItem('roguelike_save', JSON.stringify(game));
+        }
+        
+        function gameOver(victory) {
+            const modal = document.getElementById('gameOverModal');
+            const title = document.getElementById('gameOverTitle');
+            const msg = document.getElementById('gameOverMsg');
+            
+            if (victory) {
+                modal.classList.add('victory');
+                title.textContent = '🎉 胜利！';
+                msg.textContent = `恭喜通关！你到达了第 ${game.floor} 层，等级 ${game.player.level}！`;
+            } else {
+                modal.classList.remove('victory');
+                title.textContent = '💀 游戏结束';
+                msg.textContent = `你倒在了第 ${game.floor} 层。等级: ${game.player.level}，金币: ${game.player.gold}`;
+            }
+            
+            modal.classList.add('active');
+            localStorage.removeItem('roguelike_save');
+        }
+        
+        // 初始隐藏
+        document.getElementById('nextFloorBtn').style.display = 'none';
+    </script>
+</body>
+</html>

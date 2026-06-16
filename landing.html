@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StartupAgent — 创业者的超级联合创始人</title>
+  <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #ffffff; 
+      --bg-alt: #FAFAFA;
+      --border: #E5E7EB;
+      --text-main: #111827;
+      --text-muted: #6B7280;
+      --accent: #F26522; /* YC Orange */
+      --accent-hover: #D9561A; 
+      --surface: #ffffff;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+    }
+
+    html { scroll-behavior: smooth; font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'PingFang SC', 'Helvetica Neue', sans-serif; }
+
+    body { 
+      background: var(--bg); 
+      color: var(--text-main); 
+      line-height: 1.6; 
+      -webkit-font-smoothing: antialiased;
+      background-image: radial-gradient(rgba(17, 24, 39, 0.04) 1px, transparent 0);
+      background-size: 24px 24px;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 48px; background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(12px); border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 17px; font-weight: 700; letter-spacing: -0.3px;
+      text-decoration: none; color: var(--text-main);
+    }
+    .logo-icon {
+      color: var(--accent); font-size: 24px; display: flex; align-items: center;
+    }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-links a { color: var(--text-muted); text-decoration: none; font-size: 14px; transition: color 0.2s; font-weight: 500; }
+    .nav-links a:hover { color: var(--text-main); }
+    .btn-nav {
+      padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600;
+      background: var(--text-main); color: white; border: none; cursor: pointer;
+      text-decoration: none; transition: background 0.2s;
+    }
+    .btn-nav:hover { background: #000; }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 140px 24px 80px; position: relative; 
+      background-color: var(--bg-alt);
+      background-image: radial-gradient(rgba(17, 24, 39, 0.05) 1.5px, transparent 0);
+      background-size: 24px 24px;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 100px;
+      background: white; border: 1px solid var(--border); font-size: 12px; font-weight: 600;
+      color: var(--text-muted); margin-bottom: 24px; box-shadow: var(--shadow-sm);
+    }
+    .badge iconify-icon { color: var(--accent); font-size: 14px; }
+    .hero h1 {
+      font-size: clamp(40px, 6vw, 72px); font-weight: 800; letter-spacing: -1.5px; line-height: 1.1; margin-bottom: 24px; color: var(--text-main);
+    }
+    .hero p {
+      font-size: clamp(16px, 2vw, 20px); color: var(--text-muted); max-width: 640px; margin: 0 auto 40px;
+    }
+    .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+    .btn-primary {
+      padding: 14px 32px; border-radius: 8px; font-size: 16px; font-weight: 600;
+      background: var(--accent); color: white; border: none; cursor: pointer; text-decoration: none;
+      transition: background 0.2s, transform 0.1s; box-shadow: var(--shadow-md);
+    }
+    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .btn-secondary {
+      padding: 14px 32px; border-radius: 8px; font-size: 16px; font-weight: 600;
+      background: white; color: var(--text-main); border: 1px solid var(--border);
+      cursor: pointer; text-decoration: none; transition: background 0.2s, border-color 0.2s; box-shadow: var(--shadow-sm);
+    }
+    .btn-secondary:hover { background: var(--bg-alt); border-color: #D1D5DB; }
+
+    /* ── MOCK UI ── */
+    .hero-preview { margin-top: 64px; width: 100%; max-width: 900px; }
+    .mock-window {
+      border-radius: 12px; overflow: hidden; border: 1px solid var(--border);
+      background: white; box-shadow: var(--shadow-lg); text-align: left;
+    }
+    .mock-topbar {
+      display: flex; align-items: center; padding: 12px 16px; background: var(--bg-alt); border-bottom: 1px solid var(--border);
+    }
+    .mock-dots { display: flex; gap: 6px; width: 60px; }
+    .mock-dot { width: 10px; height: 10px; border-radius: 50%; background: #E5E7EB; border: 1px solid #D1D5DB; }
+    .mock-title { flex: 1; text-align: center; font-size: 12px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px; }
+    .mock-body { display: flex; height: 420px; }
+    .mock-sidebar {
+      width: 60px; border-right: 1px solid var(--border); background: var(--bg-alt);
+      display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 12px;
+    }
+    .mock-sicon {
+      width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      font-size: 20px; color: var(--text-muted); cursor: pointer; transition: 0.2s;
+    }
+    .mock-sicon.active { background: white; color: var(--text-main); box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
+    .mock-chat { flex: 1; display: flex; flex-direction: column; background: white; }
+    .mock-content { flex: 1; padding: 24px; display: flex; flex-direction: column; gap: 24px; overflow-y: auto; }
+    
+    .mock-msg { display: flex; gap: 16px; }
+    .mock-avatar {
+      width: 32px; height: 32px; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    .avatar-system { background: var(--text-main); color: white; }
+    .avatar-user { background: var(--bg-alt); color: var(--text-muted); border: 1px solid var(--border); }
+    
+    .mock-bubble { font-size: 14px; line-height: 1.6; color: var(--text-main); max-width: 80%; padding-top: 4px; }
+    
+    .mock-task {
+      margin-top: 12px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: var(--shadow-sm);
+    }
+    .mock-task-header {
+      padding: 12px 16px; background: var(--bg-alt); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; color: var(--text-main);
+    }
+    .mock-task-body { padding: 16px; background: white; }
+    .mock-step { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+    .mock-step:last-child { margin-bottom: 0; }
+    .step-icon { color: var(--text-main); font-size: 16px; margin-top: 2px; }
+    .step-icon.running { color: var(--accent); }
+    
+    .mock-input-area { padding: 16px 24px; border-top: 1px solid var(--border); background: var(--bg-alt); }
+    .mock-input-box {
+      background: white; border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-sm);
+    }
+    .mock-placeholder { font-size: 13px; color: var(--text-muted); }
+    .mock-send { color: var(--text-main); font-size: 18px; cursor: pointer; }
+
+    /* ── LOGOS / INFRA ── */
+    .infra-section {
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      background: white; padding: 48px 24px; text-align: center;
+    }
+    .infra-title { font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 32px; }
+    .infra-logos { display: flex; align-items: center; justify-content: center; gap: 64px; flex-wrap: wrap; }
+    .infra-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .infra-name { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: var(--text-main); }
+    .infra-tag {
+      display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 4px;
+      background: var(--bg-alt); border: 1px solid var(--border); font-size: 11px; font-weight: 600; color: var(--text-muted);
+    }
+
+    /* ── SECTIONS ── */
+    section { padding: 96px 24px; background: white; }
+    section.alt { background: var(--bg-alt); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .section-inner { max-width: 1100px; margin: 0 auto; }
+    .section-label {
+      display: inline-block; font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 12px;
+    }
+    .section-title { font-size: clamp(28px, 4vw, 40px); font-weight: 800; letter-spacing: -1px; margin-bottom: 20px; color: var(--text-main); }
+    .section-sub { font-size: 18px; color: var(--text-muted); max-width: 600px; margin-bottom: 56px; }
+
+    /* ── FEATURES GRID ── */
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+    .feature-card {
+      background: white; border: 1px solid var(--border); border-radius: 12px; padding: 32px;
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+    .feature-card:hover { box-shadow: var(--shadow-md); border-color: #D1D5DB; }
+    .feature-icon {
+      width: 48px; height: 48px; border-radius: 8px; background: var(--bg-alt); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--text-main); margin-bottom: 20px;
+    }
+    .feature-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 12px; color: var(--text-main); }
+    .feature-card p { font-size: 15px; color: var(--text-muted); line-height: 1.6; }
+
+    .feature-card.highlight {
+      grid-column: 1 / -1; display: flex; align-items: center; gap: 40px; background: var(--bg-alt); padding: 48px;
+    }
+    .highlight-content { flex: 1; }
+    .highlight-visual { flex: 1; min-width: 300px; }
+
+    /* ── WORKFLOW ── */
+    .workflow-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 32px; }
+    .step-card { border-top: 2px solid var(--text-main); padding-top: 24px; }
+    .step-num { font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 12px; }
+    .step-card h4 { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+    .step-card p { font-size: 15px; color: var(--text-muted); }
+
+    /* ── FOOTER ── */
+    footer { border-top: 1px solid var(--border); padding: 48px; background: white; display: flex; justify-content: space-between; align-items: center; }
+    .footer-brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px; color: var(--text-main); }
+    .footer-brand iconify-icon { color: var(--accent); font-size: 20px; }
+    .footer-meta { font-size: 14px; color: var(--text-muted); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav { padding: 16px 24px; }
+      .nav-links { display: none; }
+      .hero { padding: 120px 20px 60px; }
+      .feature-card.highlight { flex-direction: column; padding: 32px; gap: 24px; }
+      footer { flex-direction: column; gap: 16px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="logo" href="#">
+    <iconify-icon class="logo-icon" icon="ph:rocket-launch-duotone"></iconify-icon>
+    StartupAgent
+  </a>
+  <div class="nav-links">
+    <a href="#features">功能与架构</a>
+    <a href="#workflow">工作流</a>
+    <a href="#experts">专家库</a>
+  </div>
+  <a class="btn-nav" href="/">打开控制台</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="badge">
+    <iconify-icon icon="ph:shield-check-fill"></iconify-icon>
+    <span>企业级安全沙盒执行环境</span>
+  </div>
+  <h1>你的超级联合创始人</h1>
+  <p>专为创始人打造的执行力引擎。集成顶尖业务框架与代码执行沙盒，将「战略规划」与「落地产物」间的距离缩短至对话框内。</p>
+  <div class="hero-cta">
+    <a href="/" class="btn-primary">进入工作台</a>
+    <a href="#features" class="btn-secondary">了解技术架构</a>
+  </div>
+
+  <!-- MOCK UI -->
+  <div class="hero-preview">
+    <div class="mock-window">
+      <div class="mock-topbar">
+        <div class="mock-dots">
+          <div class="mock-dot"></div>
+          <div class="mock-dot"></div>
+          <div class="mock-dot"></div>
+        </div>
+        <div class="mock-title">Workspace / YC 架构师</div>
+        <div style="width:60px;"></div>
+      </div>
+      <div class="mock-body">
+        <div class="mock-sidebar">
+          <div class="mock-sicon active"><iconify-icon icon="ph:chat-teardrop-text"></iconify-icon></div>
+          <div class="mock-sicon"><iconify-icon icon="ph:briefcase"></iconify-icon></div>
+          <div class="mock-sicon"><iconify-icon icon="ph:files"></iconify-icon></div>
+          <div class="mock-sicon"><iconify-icon icon="ph:gear"></iconify-icon></div>
+        </div>
+        <div class="mock-chat">
+          <div class="mock-content" id="chat-content">
+            <!-- Simulated Message 1 (User) -->
+            <div class="mock-msg" id="msg-user" style="opacity:0; transform: translateY(10px); transition: all 0.4s ease;">
+              <div class="mock-avatar avatar-user"><iconify-icon icon="ph:user"></iconify-icon></div>
+              <div class="mock-bubble" id="user-typing">
+                <!-- Will type out: 我们正在开发一款面向开发者的效率工具，请帮我梳理竞品情况，并输出一份可展示的对比网页。 -->
+              </div>
+            </div>
+            <!-- Simulated Message 2 (Agent) -->
+            <div class="mock-msg" id="msg-agent" style="opacity:0; transform: translateY(10px); transition: all 0.4s ease; display:none;">
+              <div class="mock-avatar avatar-system"><iconify-icon icon="ph:terminal-window"></iconify-icon></div>
+              <div class="mock-bubble" style="width:100%; max-width:none;">
+                收到。我将立即在 E2B 安全隔离沙盒内运行代码，进行市场数据抓取并构建竞品对比网页。
+                <div class="mock-task">
+                  <div class="mock-task-header">
+                    <iconify-icon icon="ph:stack"></iconify-icon>
+                    自动化工作流执行中
+                  </div>
+                  <div class="mock-task-body">
+                    <div class="mock-step" id="step-1" style="opacity: 0; transition: opacity 0.3s ease;">
+                      <iconify-icon icon="ph:check-circle-fill" class="step-icon"></iconify-icon>
+                      <div>
+                        <strong>初始化沙盒容器</strong>
+                        <div style="margin-top:2px; font-size:11px;">成功挂载干净的 Node.js 隔离执行沙盒。</div>
+                      </div>
+                    </div>
+                    <div class="mock-step" id="step-2" style="opacity: 0; transition: opacity 0.3s ease;">
+                      <iconify-icon icon="ph:check-circle-fill" class="step-icon"></iconify-icon>
+                      <div>
+                        <strong>抓取数据并分析</strong>
+                        <div style="margin-top:2px; font-size:11px;">利用 MCP Web 搜索拉取 Cursor、Windsurf、Copilot 的市场评测。</div>
+                      </div>
+                    </div>
+                    <div class="mock-step" id="step-3" style="opacity: 0; transition: opacity 0.3s ease;">
+                      <iconify-icon icon="ph:spinner-gap" id="step-3-icon" class="step-icon running" style="animation: spin 1s linear infinite;"></iconify-icon>
+                      <div>
+                        <strong style="color:var(--text-main);" id="step-3-title">沙盒渲染输出网页</strong>
+                        <div style="margin-top:2px; font-size:11px;" id="step-3-desc">正在沙盒内运行 Vite 渲染，生成对比原型中。</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="mock-input-area">
+            <div class="mock-input-box">
+              <div class="mock-placeholder" id="mock-input-text">输入指令...</div>
+              <iconify-icon icon="ph:paper-plane-right-fill" class="mock-send"></iconify-icon>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
+
+<!-- DAYTONA INFRA -->
+<div class="infra-section">
+  <div class="infra-title">基于 Daytona 开源沙箱 — 同类隔离执行架构支撑全球顶尖 AI 产品</div>
+  <div class="infra-logos">
+    <div class="infra-item">
+      <div class="infra-name">Manus</div>
+      <div class="infra-tag"><iconify-icon icon="ph:lock-key-fill"></iconify-icon> 隔离执行沙箱</div>
+    </div>
+    <div class="infra-item">
+      <div class="infra-name">GenSpark</div>
+      <div class="infra-tag"><iconify-icon icon="ph:lock-key-fill"></iconify-icon> 隔离执行沙箱</div>
+    </div>
+    <div class="infra-item" style="opacity: 0.4;">
+      <iconify-icon icon="ph:plus-bold" style="font-size:24px;"></iconify-icon>
+    </div>
+    <div class="infra-item">
+      <div class="infra-name" style="color:var(--accent);">StartupAgent</div>
+      <div class="infra-tag" style="border-color:var(--accent); color:var(--accent); background:white;">
+        <iconify-icon icon="ph:lock-key-fill"></iconify-icon> Daytona 开源沙箱
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-inner">
+    <div class="section-label">核心能力</div>
+    <h2 class="section-title">拒绝空谈，专注落地执行</h2>
+    <p class="section-sub">摒弃玩具式的聊天界面，StartupAgent 是一套严谨的工程化执行台，直接交付可用的产物和数据。</p>
+
+    <div class="features-grid">
+      <div class="feature-card highlight">
+        <div class="highlight-content">
+          <div class="feature-icon"><iconify-icon icon="ph:shield-check"></iconify-icon></div>
+          <h3>云端隔离执行沙盒</h3>
+          <p style="margin-bottom:16px;">基于 <strong>Daytona</strong> 开源沙箱架构，所有的代码执行、环境依赖安装均在云端一次性容器中运行。安全、隔离、无污染。</p>
+          <ul style="list-style:none; padding:0; display:flex; flex-direction:column; gap:8px;">
+            <li style="display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text-main);">
+              <iconify-icon icon="ph:check-bold" style="color:var(--accent);"></iconify-icon>与主机环境 100% 物理隔离
+            </li>
+            <li style="display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text-main);">
+              <iconify-icon icon="ph:check-bold" style="color:var(--accent);"></iconify-icon>执行完毕立即销毁，保障数据隐私
+            </li>
+            <li style="display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text-main);">
+              <iconify-icon icon="ph:check-bold" style="color:var(--accent);"></iconify-icon>企业级安全标准合规
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon"><iconify-icon icon="ph:plugs-connected"></iconify-icon></div>
+        <h3>MCP 协议集成</h3>
+        <p>原生支持 Model Context Protocol。无缝接入你的本地文件系统、数据库与第三方 API 接口，打破系统孤岛，实现真正的跨端自动化。</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon"><iconify-icon icon="ph:command"></iconify-icon></div>
+        <h3>场景化技能库</h3>
+        <p>通过斜杠命令瞬间调用标准工作流。竞品调研、融资 Memo、GTM 规划…所有指令均为实战沉淀的 Best Practice，一键执行。</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon"><iconify-icon icon="ph:browser"></iconify-icon></div>
+        <h3>产物即时预览</h3>
+        <p>执行过程中生成的 HTML、Markdown、图表及各类结构化报告，无需跳出页面，直接在工作台中内嵌预览与评审。</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon"><iconify-icon icon="ph:sliders-horizontal"></iconify-icon></div>
+        <h3>路由与模型调度</h3>
+        <p>根据任务复杂度自动路由底层大模型。兼容 OpenAI、DeepSeek 等顶级提供商，精细控制上下文视窗与算力开销。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WORKFLOW -->
+<section id="workflow" class="alt">
+  <div class="section-inner">
+    <div class="section-label">工作流</div>
+    <h2 class="section-title">化繁为简的四步闭环</h2>
+    <div class="workflow-grid" style="margin-top:48px;">
+      <div class="step-card">
+        <div class="step-num">01. 定位场景</div>
+        <h4>载入专家配置</h4>
+        <p>从预置的 YC 导师、全栈工程师或增长专家中选择对应角色，载入系统级 Prompt。</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02. 下达指令</div>
+        <h4>注入任务上下文</h4>
+        <p>利用快捷技能包（Skill）或直接对话，将你的初步想法与约束条件传递给系统。</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03. 托管执行</div>
+        <h4>沙盒与工具介入</h4>
+        <p>系统自动思考、调用 MCP 搜索、并在隔离沙盒内进行数据分析与代码编写。</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">04. 验收成果</div>
+        <h4>导出结构化产物</h4>
+        <p>获取高可用的文档、图表或直接可部署的代码包，沉淀为项目的数字资产。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">
+    <iconify-icon icon="ph:rocket-launch-duotone"></iconify-icon>
+    StartupAgent
+  </div>
+  <div class="footer-meta">
+    &copy; 2026 StartupAgent. 专为卓越创始人打造。
+  </div>
+</footer>
+
+<script>
+  // Dynamic typing simulation
+  document.addEventListener('DOMContentLoaded', () => {
+    const userMsg = document.getElementById('msg-user');
+    const agentMsg = document.getElementById('msg-agent');
+    const userTyping = document.getElementById('user-typing');
+    const mockInput = document.getElementById('mock-input-text');
+    const chatContent = document.getElementById('chat-content');
+    
+    const step1 = document.getElementById('step-1');
+    const step2 = document.getElementById('step-2');
+    const step3Icon = document.getElementById('step-3-icon');
+    const step3Title = document.getElementById('step-3-title');
+    const step3Desc = document.getElementById('step-3-desc');
+    
+    const promptText = "我们正在开发一款面向开发者的效率工具，请帮我梳理竞品情况，并输出对比网页。";
+    
+    function runSimulation() {
+      // Reset state
+      userMsg.style.opacity = '0';
+      userMsg.style.transform = 'translateY(10px)';
+      agentMsg.style.opacity = '0';
+      agentMsg.style.transform = 'translateY(10px)';
+      agentMsg.style.display = 'none';
+      userTyping.textContent = '';
+      mockInput.textContent = '';
+      step1.style.opacity = '0';
+      step2.style.opacity = '0';
+      step3Icon.className = "step-icon running";
+      step3Icon.setAttribute('icon', 'ph:spinner-gap');
+      step3Icon.style.animation = "spin 1s linear infinite";
+      step3Title.textContent = "沙盒渲染输出网页";
+      step3Title.style.color = "var(--text-main)";
+      step3Desc.textContent = "正在沙盒内运行 Vite 渲染，生成对比原型中。";
+      
+      let charIndex = 0;
+      
+      // Simulate input typing
+      const typingTimer = setInterval(() => {
+        if (charIndex < promptText.length) {
+          mockInput.textContent += promptText[charIndex];
+          charIndex++;
+        } else {
+          clearInterval(typingTimer);
+          
+          // Submit input after 1s
+          setTimeout(() => {
+            mockInput.textContent = "输入指令...";
+            userMsg.style.opacity = '1';
+            userMsg.style.transform = 'translateY(0)';
+            userTyping.textContent = promptText;
+            
+            // Agent starts responding after 1.5s
+            setTimeout(() => {
+              agentMsg.style.display = 'flex';
+              setTimeout(() => {
+                agentMsg.style.opacity = '1';
+                agentMsg.style.transform = 'translateY(0)';
+                chatContent.scrollTop = chatContent.scrollHeight;
+                
+                // Trigger steps
+                setTimeout(() => {
+                  step1.style.opacity = '1';
+                  chatContent.scrollTop = chatContent.scrollHeight;
+                  
+                  setTimeout(() => {
+                    step2.style.opacity = '1';
+                    chatContent.scrollTop = chatContent.scrollHeight;
+                    
+                    setTimeout(() => {
+                      // Finish step 3
+                      step3Icon.className = "step-icon";
+                      step3Icon.setAttribute('icon', 'ph:check-circle-fill');
+                      step3Icon.style.animation = "none";
+                      step3Icon.style.color = "var(--accent)";
+                      step3Title.textContent = "原型已生成并成功部署";
+                      step3Title.style.color = "var(--accent)";
+                      step3Desc.innerHTML = `<span style="color:var(--text-main); font-weight: 600;">[ 预览地址 ]</span> <a href="#" style="color: var(--accent); text-decoration: underline;" onclick="event.preventDefault();">https://sandbox.e2b.dev/app-preview/</a>`;
+                      chatContent.scrollTop = chatContent.scrollHeight;
+                      
+                      // Restart simulation loop after 6s
+                      setTimeout(runSimulation, 6000);
+                    }, 2500);
+                  }, 1800);
+                }, 1200);
+              }, 50);
+            }, 1200);
+          }, 1000);
+        }
+      }, 40);
+    }
+    
+    // Start after a brief moment
+    setTimeout(runSimulation, 1000);
+  });
+</script>
+
+</body>
+</html>
